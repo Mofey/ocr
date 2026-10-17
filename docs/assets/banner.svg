@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title description">
+  <title id="title">Ledgerical OCR Worker</title>
+  <desc id="description">A colorful header with a receipt, scanning frame and structured JSON. PaddleOCR document extraction for isolated Vercel Sandbox jobs.</desc>
+  <rect x="1" y="1" width="1278" height="358" rx="28" fill="#0b1224" stroke="#283652" stroke-width="2"/>
+  <circle cx="1144" cy="38" r="205" fill="#6d28d9" opacity="0.16"/>
+  <circle cx="1251" cy="309" r="176" fill="#0891b2" opacity="0.13"/>
+  <circle cx="798" cy="324" r="136" fill="#2563eb" opacity="0.10"/>
+  <path d="M744 1V359M824 1V359M904 1V359M984 1V359M1064 1V359M1144 1V359M1224 1V359M744 89H1278M744 169H1278M744 249H1278M744 329H1278" stroke="#263451" opacity="0.28"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="56" y="42" width="34" height="34" rx="10" fill="#2dd4bf"/>
+    <path d="M66 50H77L81 54V68H66Z M77 50V55H81 M70 59H77 M70 63H77" fill="none" stroke="#0b1224" stroke-width="2" stroke-linejoin="round"/>
+    <text x="105" y="65" fill="#a6b8d4" font-size="16" font-weight="700" letter-spacing="4">LEDGERICAL</text>
+    <text x="56" y="150" fill="#f8fafc" font-size="68" font-weight="700" letter-spacing="-2">OCR Worker</text>
+    <text x="60" y="193" fill="#bbcae0" font-size="24">Turn documents into structured text.</text>
+    <g font-size="14" font-weight="700">
+      <rect x="60" y="225" width="131" height="36" rx="18" fill="#123c38" stroke="#257a6b"/>
+      <text x="125.5" y="248" fill="#85f2d7" text-anchor="middle">PADDLEOCR</text>
+      <rect x="203" y="225" width="172" height="36" rx="18" fill="#202d52" stroke="#3c5691"/>
+      <text x="289" y="248" fill="#b3ccff" text-anchor="middle">VERCEL SANDBOX</text>
+      <rect x="387" y="225" width="118" height="36" rx="18" fill="#38234c" stroke="#775191"/>
+      <text x="446" y="248" fill="#e2bcff" text-anchor="middle">APACHE 2.0</text>
+    </g>
+    <circle cx="66" cy="311" r="4" fill="#2dd4bf"/>
+    <text x="80" y="317" fill="#9fb1cc" font-size="15">Signed input</text>
+    <circle cx="217" cy="311" r="4" fill="#a78bfa"/>
+    <text x="231" y="317" fill="#9fb1cc" font-size="15">Isolated parsing</text>
+    <circle cx="392" cy="311" r="4" fill="#fbbf24"/>
+    <text x="406" y="317" fill="#9fb1cc" font-size="15">Typed output</text>
+  </g>
+  <g transform="translate(1016 31) rotate(9 95 130)">
+    <rect x="8" y="11" width="183" height="260" rx="14" fill="#020617" opacity="0.28"/>
+    <path d="M14 0H145L183 38V246Q183 260 169 260H14Q0 260 0 246V14Q0 0 14 0Z" fill="#f8fafc"/>
+    <path d="M145 0V28Q145 38 155 38H183" fill="#d7e3f5"/>
+    <rect x="26" y="39" width="86" height="9" rx="4" fill="#334155"/>
+    <rect x="26" y="62" width="113" height="6" rx="3" fill="#cbd5e1"/>
+    <path d="M26 88H155" stroke="#cbd5e1" stroke-dasharray="4 4"/>
+    <rect x="26" y="108" width="76" height="7" rx="3" fill="#64748b"/>
+    <rect x="123" y="108" width="33" height="7" rx="3" fill="#94a3b8"/>
+    <rect x="26" y="132" width="92" height="7" rx="3" fill="#94a3b8"/>
+    <rect x="123" y="132" width="33" height="7" rx="3" fill="#94a3b8"/>
+    <rect x="18" y="177" width="147" height="36" rx="7" fill="#d1fae5" stroke="#10b981"/>
+    <text x="29" y="200" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#047857">TOTAL</text>
+    <path d="M92 194H148" stroke="#10b981" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <g>
+    <rect x="748" y="125" width="373" height="169" rx="18" fill="#020617" opacity="0.25"/>
+    <rect x="740" y="117" width="373" height="169" rx="18" fill="#15213b" stroke="#45587e" stroke-width="1.5"/>
+    <circle cx="762" cy="140" r="4" fill="#fb7185"/><circle cx="777" cy="140" r="4" fill="#fbbf24"/><circle cx="792" cy="140" r="4" fill="#34d399"/>
+    <text x="1089" y="144" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#8297b8">OCR RESULT</text>
+    <g font-family="Consolas, 'Courier New', monospace" font-size="15">
+      <text x="761" y="176" fill="#d8e4f7">{</text>
+      <text x="778" y="201"><tspan fill="#7dd3fc">"text"</tspan><tspan fill="#d8e4f7">: </tspan><tspan fill="#a7f3d0">"TOTAL NGN 9,500"</tspan><tspan fill="#d8e4f7">,</tspan></text>
+      <text x="778" y="226"><tspan fill="#c4b5fd">"layoutLines"</tspan><tspan fill="#d8e4f7">: [ ... ],</tspan></text>
+      <text x="778" y="251"><tspan fill="#fcd34d">"contentValidated"</tspan><tspan fill="#d8e4f7">: true</tspan></text>
+      <text x="761" y="273" fill="#d8e4f7">}</text>
+    </g>
+  </g>
+</svg>

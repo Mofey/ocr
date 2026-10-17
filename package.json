@@ -1,13 +1,14 @@
 {
   "name": "ledgerical-ocr-worker-vercel",
   "version": "1.0.0",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "engines": { "node": "24.x" },
   "scripts": {
     "build": "node scripts/check.mjs",
-    "prepare:snapshot": "node --env-file=.env.local scripts/prepare-snapshot.mjs",
-    "cleanup:slot": "node --env-file=.env.local scripts/cleanup-slot.mjs"
+    "prepare:snapshot": "node scripts/prepare-snapshot.mjs",
+    "cleanup:slot": "node scripts/cleanup-slot.mjs"
   },
   "dependencies": { "@vercel/sandbox": "3.8.0" }
 }

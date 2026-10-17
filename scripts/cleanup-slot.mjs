@@ -1,5 +1,8 @@
 import { APIError, Sandbox } from '@vercel/sandbox';
 import { sdkAuth } from '../lib/sandbox.mjs';
+import { loadLocalAuthentication } from './local-auth.mjs';
+
+if (!loadLocalAuthentication()) process.exit(1);
 
 // Recovery only for an expired/stopped slot after interrupted Function cleanup.
 // Never resume, inspect files, snapshot or delete a running job.

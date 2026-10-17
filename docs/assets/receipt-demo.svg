@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="540" viewBox="0 0 1280 540" role="img" aria-labelledby="title description">
+  <title id="title">From a synthetic receipt to structured OCR output</title>
+  <desc id="description">A fictional cafe receipt on the left and illustrative JSON output on the right, joined by a PaddleOCR arrow. This is an illustration, not a measured OCR result.</desc>
+  <rect x="1" y="1" width="1278" height="538" rx="24" fill="#f1f5f9" stroke="#dce4ef" stroke-width="2"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="46" y="30" width="183" height="30" rx="15" fill="#ffedd5"/>
+    <text x="137.5" y="50" text-anchor="middle" font-size="12" font-weight="700" fill="#9a3412" letter-spacing="1">01 / DOCUMENT IN</text>
+    <rect x="658" y="30" width="192" height="30" rx="15" fill="#ede9fe"/>
+    <text x="754" y="50" text-anchor="middle" font-size="12" font-weight="700" fill="#6d28d9" letter-spacing="1">02 / JSON OUT</text>
+    <rect x="80" y="87" width="399" height="383" rx="16" fill="#dbe4ee"/>
+    <rect x="72" y="79" width="399" height="383" rx="16" fill="#ffffff" stroke="#d6dfeb"/>
+    <text x="272" y="126" text-anchor="middle" font-size="24" font-weight="700" fill="#111827">RIVERSIDE CAFE</text>
+    <text x="272" y="155" text-anchor="middle" font-size="13" fill="#64748b">18 OCT 2026 / RECEIPT 0042</text>
+    <path d="M108 183H435" stroke="#cbd5e1" stroke-dasharray="5 5"/>
+    <text x="108" y="220" font-size="18" fill="#334155">Coffee x 2</text>
+    <text x="435" y="220" text-anchor="end" font-size="18" fill="#334155">7,000.00</text>
+    <text x="108" y="254" font-size="18" fill="#334155">Croissant</text>
+    <text x="435" y="254" text-anchor="end" font-size="18" fill="#334155">2,500.00</text>
+    <rect x="98" y="283" width="347" height="59" rx="11" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="113" y="319" font-size="19" font-weight="700" fill="#065f46">TOTAL</text>
+    <text x="430" y="319" text-anchor="end" font-size="19" font-weight="700" fill="#065f46">NGN 9,500.00</text>
+    <text x="272" y="386" text-anchor="middle" font-size="14" fill="#64748b">Thank you for visiting!</text>
+    <text x="272" y="430" text-anchor="middle" font-size="11" fill="#94a3b8" letter-spacing="1">SYNTHETIC SAMPLE</text>
+    <circle cx="565" cy="256" r="36" fill="#ede9fe"/>
+    <path d="M547 256H582 M570 244L582 256L570 268" fill="none" stroke="#7c3aed" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="565" y="315" text-anchor="middle" font-size="13" font-weight="700" fill="#7c3aed">PaddleOCR</text>
+    <text x="565" y="336" text-anchor="middle" font-size="11" fill="#64748b">text + layout</text>
+    <rect x="658" y="79" width="574" height="383" rx="16" fill="#0f172a"/>
+    <circle cx="682" cy="106" r="5" fill="#fb7185"/><circle cx="701" cy="106" r="5" fill="#fbbf24"/><circle cx="720" cy="106" r="5" fill="#34d399"/>
+    <text x="1207" y="111" text-anchor="end" font-size="12" fill="#8297b8">response.json / excerpt</text>
+  </g>
+  <g font-family="Consolas, 'Courier New', monospace" font-size="18">
+    <text x="682" y="152" fill="#cbd5e1">{</text>
+    <text x="702" y="181"><tspan fill="#7dd3fc">"text"</tspan><tspan fill="#cbd5e1">: </tspan><tspan fill="#a7f3d0">"RIVERSIDE CAFE\n..."</tspan><tspan fill="#cbd5e1">,</tspan></text>
+    <text x="702" y="210"><tspan fill="#c4b5fd">"layoutLines"</tspan><tspan fill="#cbd5e1">: [{ ... }],</tspan></text>
+    <text x="702" y="239"><tspan fill="#7dd3fc">"ocr"</tspan><tspan fill="#cbd5e1">: {</tspan></text>
+    <text x="722" y="268"><tspan fill="#7dd3fc">"engine"</tspan><tspan fill="#cbd5e1">:</tspan></text>
+    <text x="742" y="297" fill="#a7f3d0">"paddleocr-ppocrv6-small-layout",</text>
+    <text x="722" y="326"><tspan fill="#7dd3fc">"confidence"</tspan><tspan fill="#cbd5e1">: </tspan><tspan fill="#fcd34d">0.97</tspan><tspan fill="#cbd5e1">,</tspan></text>
+    <text x="722" y="355"><tspan fill="#7dd3fc">"pageCount"</tspan><tspan fill="#cbd5e1">: </tspan><tspan fill="#fcd34d">1</tspan></text>
+    <text x="702" y="384" fill="#cbd5e1">},</text>
+    <text x="702" y="413"><tspan fill="#7dd3fc">"contentValidated"</tspan><tspan fill="#cbd5e1">: </tspan><tspan fill="#c4b5fd">true</tspan></text>
+    <text x="682" y="442" fill="#cbd5e1">}</text>
+  </g>
+  <text x="640" y="508" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="#64748b">Illustrative output only. Confidence values are examples, not benchmark results.</text>
+</svg>

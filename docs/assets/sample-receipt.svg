@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="720" viewBox="0 0 600 720" role="img" aria-labelledby="title description">
+  <title id="title">Synthetic receipt for the OCR example</title>
+  <desc id="description">A fictional Riverside Cafe receipt dated 18 October 2026: two coffees for NGN 7,000 and a croissant for NGN 2,500, total NGN 9,500. No customer data.</desc>
+  <rect width="600" height="720" fill="#ffffff"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#111827">
+    <text x="300" y="90" text-anchor="middle" font-size="32" font-weight="700">RIVERSIDE CAFE</text>
+    <text x="300" y="126" text-anchor="middle" font-size="18">18 October 2026</text>
+    <text x="300" y="157" text-anchor="middle" font-size="18">Receipt No. 0042</text>
+    <path d="M60 194H540" stroke="#374151" stroke-width="2" stroke-dasharray="8 6"/>
+    <text x="64" y="239" font-size="18" font-weight="700">ITEM</text>
+    <text x="536" y="239" text-anchor="end" font-size="18" font-weight="700">AMOUNT (NGN)</text>
+    <text x="64" y="294" font-size="22">Coffee x 2</text>
+    <text x="536" y="294" text-anchor="end" font-size="22">7,000.00</text>
+    <text x="64" y="343" font-size="22">Croissant</text>
+    <text x="536" y="343" text-anchor="end" font-size="22">2,500.00</text>
+    <path d="M60 382H540" stroke="#374151" stroke-width="2" stroke-dasharray="8 6"/>
+    <text x="64" y="447" font-size="28" font-weight="700">TOTAL</text>
+    <text x="536" y="447" text-anchor="end" font-size="28" font-weight="700">NGN 9,500.00</text>
+    <text x="300" y="536" text-anchor="middle" font-size="20">Thank you for visiting!</text>
+    <text x="300" y="624" text-anchor="middle" font-size="15" fill="#64748b">SYNTHETIC DEMONSTRATION RECEIPT</text>
+    <text x="300" y="651" text-anchor="middle" font-size="15" fill="#64748b">No customer or payment information</text>
+  </g>
+</svg>

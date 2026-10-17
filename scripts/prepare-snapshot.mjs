@@ -3,7 +3,10 @@ import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sdkAuth } from '../lib/sandbox.mjs';
+import { loadLocalAuthentication } from './local-auth.mjs';
 import './check.mjs';
+
+if (!loadLocalAuthentication()) process.exit(1);
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const region = process.env.OCR_SANDBOX_REGION || 'iad1';

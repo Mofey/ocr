@@ -1,6 +1,8 @@
 .env*
 .git/
 node_modules/
+.venv/
+venv/
 .npm-cache/
 __pycache__/
 .pytest_cache/
