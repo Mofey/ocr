@@ -1,0 +1,11 @@
+fastapi==0.143.3
+starlette==1.8.0
+uvicorn[standard]==0.29.0
+pydantic==2.13.5
+numpy==1.26.4
+pillow==12.3.0
+opencv-python-headless==4.9.0.80
+paddlepaddle==3.3.1
+paddleocr==3.7.0
+pypdf==6.19.0
+pypdfium2==5.14.0

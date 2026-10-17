@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "fluid": true,
+  "buildCommand": "npm run build",
+  "functions": {
+    "api/process.mjs": { "maxDuration": 60 },
+    "api/health.mjs": { "maxDuration": 10 }
+  },
+  "rewrites": [
+    { "source": "/v1/process", "destination": "/api/process" },
+    { "source": "/healthz", "destination": "/api/health" }
+  ]
+}

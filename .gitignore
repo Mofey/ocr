@@ -1,0 +1,12 @@
+node_modules/
+.npm-cache/
+.vercel/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+*.log

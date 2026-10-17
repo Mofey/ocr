@@ -1,0 +1,6 @@
+-r sandbox/requirements-linux.lock
+
+# Existing worker checks relocated out of Main. Not used by Vercel Functions
+# or the production parser image; these require a separate Python 3.12 env.
+pytest==8.3.5
+pytest-asyncio==0.25.3

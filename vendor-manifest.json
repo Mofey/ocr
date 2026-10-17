@@ -1,0 +1,17 @@
+{
+  "source": "sandbox/ocr_worker",
+  "maintainedHere": true,
+  "migratedOn": "2026-10-17",
+  "sha256": {
+    "sandbox/ocr_worker/__init__.py": "07ae4408c8eb32447380e8f4e66d6b8bb54fbded2812023b7ec0f038eb16e066",
+    "sandbox/ocr_worker/app.py": "ed91fbe69e9e10c030cc704abc10cc2cb6c0325ee4edd29ff3e4825d9287cc31",
+    "sandbox/ocr_worker/grant.py": "9f48fa0a75dd5d614ee6ac46b99286830bb07eac5d164b1f4cff918523517aa1",
+    "sandbox/ocr_worker/isolation.py": "3220e7d879fb14db3467cc19ce18f3305f8d97a003d05ad2b6c35210611187f0",
+    "sandbox/ocr_worker/processor.py": "ec4b1b49d50c8fd2d3f142165a0bf758365827d796d5c3e477addd838b7f1548",
+    "sandbox/ocr_worker/ocr.py": "8140efbb4d9096e7dde7d0d63fe8611a01143535efc05c31c7e4a30db94b556a",
+    "sandbox/ocr_worker/bank_statement_pdf.py": "d49c1a7ac6194daef6ca49b72a671f81fcc80d14f58d0f3d8cdd0812c1adba00",
+    "sandbox/requirements.txt": "e9c38eea37df840993c70018822f12d20fa2ff546215603c67283b43b63ecf33",
+    "sandbox/requirements-linux.lock": "195c0102653bf68b7d46f58602039a21813c2aa31f88ce381f440d60ef8be362"
+  },
+  "lineEndings": "LF"
+}

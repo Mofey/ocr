@@ -1,0 +1,10 @@
+.env*
+.git/
+node_modules/
+.npm-cache/
+__pycache__/
+.pytest_cache/
+tests/
+pytest.ini
+requirements-test.txt
+*.log
