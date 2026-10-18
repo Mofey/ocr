@@ -4,7 +4,7 @@
   "fluid": true,
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
-  "outputDirectory": "public",
+  "outputDirectory": "dist",
   "functions": {
     "api/process.mjs": { "maxDuration": 60 },
     "api/health.mjs": { "maxDuration": 10 }
