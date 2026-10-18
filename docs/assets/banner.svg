@@ -7,8 +7,23 @@
   <circle cx="798" cy="324" r="136" fill="#2563eb" opacity="0.10"/>
   <path d="M744 1V359M824 1V359M904 1V359M984 1V359M1064 1V359M1144 1V359M1224 1V359M744 89H1278M744 169H1278M744 249H1278M744 329H1278" stroke="#263451" opacity="0.28"/>
   <g font-family="Arial, Helvetica, sans-serif">
-    <rect x="56" y="42" width="34" height="34" rx="10" fill="#2dd4bf"/>
-    <path d="M66 50H77L81 54V68H66Z M77 50V55H81 M70 59H77 M70 63H77" fill="none" stroke="#0b1224" stroke-width="2" stroke-linejoin="round"/>
+    <svg x="56" y="42" width="34" height="34" viewBox="0 0 32 32" aria-hidden="true">
+      <defs>
+        <linearGradient id="ledgerical-logo-bg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#0B8FA8"/>
+          <stop offset="100%" stop-color="#14C5E4"/>
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="7" fill="url(#ledgerical-logo-bg)"/>
+      <circle cx="16" cy="9" r="2.5" fill="white"/>
+      <rect x="5" y="8" width="22" height="2" rx="1" fill="white"/>
+      <rect x="4.5" y="10" width="1.5" height="8" rx="0.75" fill="white"/>
+      <rect x="26" y="10" width="1.5" height="8" rx="0.75" fill="white"/>
+      <rect x="0.75" y="18" width="9" height="2.5" rx="1.25" fill="white"/>
+      <rect x="22.25" y="18" width="9" height="2.5" rx="1.25" fill="white"/>
+      <rect x="15.25" y="10" width="1.5" height="14.5" rx="0.75" fill="white"/>
+      <rect x="11" y="24.5" width="10" height="2.5" rx="1.25" fill="white"/>
+    </svg>
     <text x="105" y="65" fill="#a6b8d4" font-size="16" font-weight="700" letter-spacing="4">LEDGERICAL</text>
     <text x="56" y="150" fill="#f8fafc" font-size="68" font-weight="700" letter-spacing="-2">OCR Worker</text>
     <text x="60" y="193" fill="#bbcae0" font-size="24">Turn documents into structured text.</text>
