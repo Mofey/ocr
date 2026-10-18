@@ -3,7 +3,7 @@ node_modules/
 venv/
 .npm-cache/
 .vercel/
-dist/
+public/
 .env
 .env.*
 !.env.example
