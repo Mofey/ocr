@@ -259,6 +259,11 @@ image and downloads the OCR models. It then denies outbound traffic, checks
 the runtime restrictions and saves a snapshot containing code and models.
 The preparation VM is deleted afterward.
 
+Before Docker starts, the bootstrap places the VM supervisor processes in a
+separate cgroup leaf and enables CPU, memory and process controllers for the
+parser containers. This supports the managed image's initial threaded cgroup
+layout while keeping the parser's resource limits mandatory.
+
 On success, the command prints values in this form:
 
 ```dotenv
@@ -488,7 +493,9 @@ only deletes stopped or failed slots and never resumes or snapshots a job.
 | Symptom | Action |
 | --- | --- |
 | `OCR_DEPLOYMENT_ROOT_INVALID`, missing `public` output, or Paddle installing during the gateway build | Clear `sandbox` from Vercel's Root Directory. Leave it empty for the standalone repository, save and redeploy. The gateway uses Node.js; Python dependencies are installed when preparing the sandbox snapshot. |
+| `/healthz` returns `OCR_WORKER_NOT_CONFIGURED` | The gateway is reachable. Its `detail.missingOrInvalid` array lists variable names to fix. Set the existing CMD grant secret and a snapshot ID printed by successful `npm run prepare:snapshot` in the worker's **Production** environment, then redeploy. A local `.env` file does not configure Vercel. |
 | Missing `.env.local` or authentication | Run `npx vercel login`, `npx vercel link` and `npx vercel env pull .env.local` from the repository root. |
+| Preparation fails while creating upload directories, uploading source or verifying it | Use the current preparation script and rerun `npm run prepare:snapshot`. It creates parent directories recursively and verifies uploaded hashes and executable scripts. The error includes the precise stage and safe HTTP/filesystem codes; share those diagnostics when reporting a failure. |
 | `OCR_WORKER_NOT_CONFIGURED` | Check the worker secret, snapshot ID, region and slot settings, then redeploy. |
 | `INVALID_OCR_JOB_GRANT` | Check the issuer/worker secrets, signed fields, exact file bytes and clocks. |
 | `OCR_SANDBOX_UNAVAILABLE` | Check the prepared snapshot and required runtime restrictions; keep the guards enabled. |
@@ -531,6 +538,11 @@ or run OCR inference or Python tests.
 Run the deployment regression checks with `npm run test:deployment`. They use
 temporary local fixtures to check a clean build, repeated builds and the
 incorrect `sandbox` Root Directory setting; no cloud credentials are needed.
+Run `npm run test:worker` to check safe health diagnostics and required worker
+configuration. These checks do not create sandboxes or run inference.
+Run `npm run test:snapshot` for source-upload preparation checks, including
+missing parent directories, source integrity and safe error reporting. These
+also run locally without Vercel credentials or cloud resources.
 
 For the Python suite, use a separate Linux/Python 3.12 environment:
 

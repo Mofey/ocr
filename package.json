@@ -8,6 +8,8 @@
   "scripts": {
     "build": "node scripts/build-site.mjs",
     "test:deployment": "node --test tests/deployment.test.mjs",
+    "test:worker": "node --test tests/worker-configuration.test.mjs",
+    "test:snapshot": "node --test tests/snapshot-preparation.test.mjs",
     "prepare:snapshot": "node scripts/prepare-snapshot.mjs",
     "cleanup:slot": "node scripts/cleanup-slot.mjs"
   },

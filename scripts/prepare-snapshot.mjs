@@ -1,36 +1,28 @@
 import { Sandbox } from '@vercel/sandbox';
-import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sdkAuth } from '../lib/sandbox.mjs';
 import { loadLocalAuthentication } from './local-auth.mjs';
+import { readTrustedSnapshotFiles, safePreparationFailure, uploadTrustedSnapshotFiles } from '../lib/snapshot-preparation.mjs';
 import './check.mjs';
 
 if (!loadLocalAuthentication()) process.exit(1);
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const region = process.env.OCR_SANDBOX_REGION || 'iad1';
-const manifest = JSON.parse(await readFile(resolve(root, 'vendor-manifest.json'), 'utf8'));
-// Explicit allowlist: never upload .env files, project credentials, databases,
-// receipts, parent repository files or a recursively selected working tree.
-const sources = [...Object.keys(manifest.sha256),
-  'sandbox/ocr_worker/vercel_runner.py', 'sandbox/Dockerfile',
-  'sandbox/boot.sh', 'sandbox/process.sh', 'sandbox/prepare.sh'];
 let sandbox;
-let stage = 'create';
+let stage = 'read trusted local source';
 try {
+  // Missing/changed files must fail before a billable sandbox is created.
+  const files = await readTrustedSnapshotFiles(root);
+  stage = 'create';
   console.log('Preparing code and PaddleOCR models only. This creates billable Vercel Sandbox resources.');
   sandbox = await Sandbox.create({
     ...sdkAuth(), image: 'vercel/sandbox/universal',
     persistent: false, networkPolicy: 'allow-all', env: {}, ports: [],
     resources: { vcpus: 4 }, region, timeout: 45 * 60 * 1000,
   });
-  stage = 'upload trusted source';
-  await sandbox.mkDir('/vercel/sandbox/build/ocr_worker');
-  await sandbox.writeFiles(await Promise.all(sources.map(async source => ({
-    path: `/vercel/sandbox/build/${source.slice('sandbox/'.length)}`,
-    content: await readFile(resolve(root, source)), mode: source.endsWith('.sh') ? 0o755 : 0o644,
-  }))));
+  await uploadTrustedSnapshotFiles(sandbox, files, value => { stage = value; });
   stage = 'install Docker and build PaddleOCR image';
   console.log('Installing Docker, pinned Python packages and OCR models. This can take several minutes.');
   const build = await sandbox.runCommand({
@@ -40,17 +32,23 @@ try {
   if (build.exitCode !== 0) throw new Error('build failed');
   // Freeze egress BEFORE the runtime guard runs. No documents have been sent.
   stage = 'enforce offline runtime restrictions';
-  await sandbox.update({ networkPolicy: 'deny-all' });
-  const probe = await sandbox.runCommand({ cmd: '/opt/ledgerical/boot.sh', sudo: true });
-  if (probe.exitCode !== 0) throw new Error('runtime restrictions unavailable');
+  console.log('Checking the offline runtime restrictions.');
+  await sandbox.update({ networkPolicy: 'deny-all' }, { signal: AbortSignal.timeout(30000) });
+  const probe = await sandbox.runCommand({ cmd: '/opt/ledgerical/boot.sh', sudo: true, signal: AbortSignal.timeout(30000) });
+  if (probe.exitCode !== 0) {
+    const diagnostic = (await probe.stderr()).match(/^OCR_SANDBOX_BOOT_FAILED stage=(configure_cgroups|start_docker|disable_swap|mount_job_tmpfs|check_parser_image|restricted_container_probe) exit=([0-9]{1,3})$/m);
+    if (diagnostic) console.error(`Runtime check failed: stage=${diagnostic[1]} exit=${diagnostic[2]}`);
+    throw new Error('runtime restrictions unavailable');
+  }
   stage = 'clean temporary bootstrap state';
   const clean = await sandbox.runCommand({
-    cmd: 'sh', sudo: true, args: ['-ec', `
+    cmd: 'sh', sudo: true, signal: AbortSignal.timeout(20000), args: ['-ec', `
       umount /run/ledgerical-ocr
       rmdir /run/ledgerical-ocr
-      kill "$(cat /var/run/docker.pid)"
+      daemon_pid=$(cat /var/run/docker.pid)
+      kill "$daemon_pid"
       attempt=0
-      while docker info >/dev/null 2>&1; do
+      while kill -0 "$daemon_pid" 2>/dev/null; do
         attempt=$((attempt + 1)); [ "$attempt" -lt 100 ] || exit 1; sleep 0.1
       done
       rm -f /var/run/docker.pid /var/run/docker.sock
@@ -58,13 +56,13 @@ try {
   });
   if (clean.exitCode !== 0) throw new Error('cleanup failed');
   stage = 'snapshot trusted code and models';
-  const snapshot = await sandbox.snapshot({ expiration: 0 });
+  console.log('Saving the prepared code and model snapshot.');
+  const snapshot = await sandbox.snapshot({ expiration: 0, signal: AbortSignal.timeout(180000) });
   console.log(`OCR_SANDBOX_SNAPSHOT_ID=${snapshot.snapshotId}`);
   console.log(`OCR_SANDBOX_REGION=${region}`);
   console.log('Set these on this Vercel project, then redeploy. No user file was processed or snapshotted.');
-} catch {
-  // SDK errors may carry auth/provider details; emit the safe stage only.
-  console.error(`Preparation failed during: ${stage}. No deployment settings were changed.`);
+} catch (error) {
+  console.error(`Preparation failed during: ${stage}. ${safePreparationFailure(error)}. No deployment settings were changed.`);
   process.exitCode = 1;
 } finally {
   if (sandbox) {

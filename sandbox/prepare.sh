@@ -13,6 +13,7 @@ cp /etc/ssl/certs/ca-certificates.crt /vercel/sandbox/build/build-certs/sandbox-
 dockerd --host=unix:///var/run/docker.sock --bridge=none \
   --iptables=false --ip6tables=false --ip-forward=false \
   --exec-opt native.cgroupdriver=cgroupfs >/dev/null 2>&1 &
+dockerd_pid=$!
 attempt=0
 until docker info >/dev/null 2>&1; do
   attempt=$((attempt + 1))
@@ -26,7 +27,10 @@ DOCKER_BUILDKIT=1 docker build --network=host \
   --tag ledgerical-ocr:2026-10-17 .
 docker image inspect --format '{{.Id}}' ledgerical-ocr:2026-10-17 > /opt/ledgerical/image-id
 docker builder prune --all --force >/dev/null
-kill "$(cat /var/run/docker.pid)"
+kill "$dockerd_pid"
+# Losing the socket does not mean the daemon has finished shutting down.
+# Reap it before boot validation can start another daemon on the same state.
+wait "$dockerd_pid"
 attempt=0
 while docker info >/dev/null 2>&1; do
   attempt=$((attempt + 1))
