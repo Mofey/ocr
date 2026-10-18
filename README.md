@@ -208,16 +208,23 @@ Import the repository into a dedicated Vercel project with these settings:
 | Setting | Value |
 | --- | --- |
 | Framework Preset | Other |
-| Root Directory | Repository root; `ocr` when importing the monorepo |
+| Root Directory | **Leave empty** for the standalone OCR repository; `ocr` only when importing the Ledgerical monorepo |
 | Node.js version | 24.x |
 | Install command | `npm ci` |
 | Build command | `npm run build` |
-| Output Directory | Leave unset |
+| Output Directory | `public` (configured by `vercel.json`) |
 | Fluid Compute | Enabled |
 
 The HTTP entry points are in `api/`. The Dockerfile at
 [`sandbox/Dockerfile`](sandbox/Dockerfile) builds the parser container inside
 the sandbox during model preparation.
+
+> [!IMPORTANT]
+> **Do not set Root Directory to `sandbox`.** Deploy the folder containing
+> `package.json`, `vercel.json` and `api/`. Selecting `sandbox` makes Vercel
+> look for build output and API functions in the parser's source folder.
+> If you already selected it, open **Settings → Build and Deployment → Root
+> Directory**, clear the field, save and redeploy.
 
 ### 2️⃣ Install dependencies and authenticate
 
@@ -480,6 +487,7 @@ only deletes stopped or failed slots and never resumes or snapshots a job.
 
 | Symptom | Action |
 | --- | --- |
+| `OCR_DEPLOYMENT_ROOT_INVALID`, missing `public` output, or Paddle installing during the gateway build | Clear `sandbox` from Vercel's Root Directory. Leave it empty for the standalone repository, save and redeploy. The gateway uses Node.js; Python dependencies are installed when preparing the sandbox snapshot. |
 | Missing `.env.local` or authentication | Run `npx vercel login`, `npx vercel link` and `npx vercel env pull .env.local` from the repository root. |
 | `OCR_WORKER_NOT_CONFIGURED` | Check the worker secret, snapshot ID, region and slot settings, then redeploy. |
 | `INVALID_OCR_JOB_GRANT` | Check the issuer/worker secrets, signed fields, exact file bytes and clocks. |
@@ -502,7 +510,8 @@ sandbox/ocr_worker/        Python parsers, isolation and result models
 sandbox/Dockerfile         Pinned Python runtime and model preparation
 sandbox/*.sh               Sandbox/container lifecycle scripts
 scripts/                   Preparation, recovery and static build commands
-tests/                     Existing Python test suite
+site/                      Source for the generated public landing page
+tests/                     Python tests and gateway deployment regression checks
 vendor-manifest.json       Core source and dependency SHA-256 hashes
 ```
 
@@ -515,8 +524,13 @@ npm run build
 
 The build checks JavaScript syntax, configuration JSON and the source hashes
 listed in `vendor-manifest.json`. Review and update affected hashes when
-changing those core files. The build does not create cloud resources or run
-OCR inference or Python tests.
+changing those core files. It also validates the Vercel invocation directory
+and generates `public/index.html`. The build does not create cloud resources
+or run OCR inference or Python tests.
+
+Run the deployment regression checks with `npm run test:deployment`. They use
+temporary local fixtures to check a clean build, repeated builds and the
+incorrect `sandbox` Root Directory setting; no cloud credentials are needed.
 
 For the Python suite, use a separate Linux/Python 3.12 environment:
 
