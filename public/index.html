@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#071526" />
+    <meta name="description" content="Private document processing gateway for Ledgerical." />
+    <title>Ledgerical OCR Worker</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      * { box-sizing: border-box; }
+      body {
+        min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 32px;
+        color: #e7f0fb; background: radial-gradient(ellipse at 50% 0%, #123b58 0, #071526 56%);
+      }
+      main { width: min(100%, 680px); padding: 48px; border: 1px solid #28506b; border-radius: 24px; background: #0b1e30eF; box-shadow: 0 28px 80px #02091480; }
+      .mark { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 14px; color: #052333; background: linear-gradient(135deg, #6ee7d8, #58aef7); font-size: 23px; font-weight: 800; }
+      .eyebrow { margin: 28px 0 8px; color: #76dcca; font-size: 12px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(32px, 7vw, 48px); letter-spacing: -.045em; line-height: 1.05; }
+      .intro { margin: 18px 0 32px; color: #a9bfd2; font-size: 16px; line-height: 1.7; }
+      .routes { display: grid; gap: 12px; }
+      .route { display: flex; align-items: center; gap: 14px; padding: 15px 17px; border: 1px solid #1c3c53; border-radius: 13px; background: #0b1928; }
+      .method { min-width: 52px; color: #78e3d2; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+      code { color: #e7f0fb; font: 600 13px ui-monospace, SFMono-Regular, Consolas, monospace; }
+      .foot { margin: 26px 0 0; color: #7892a8; font-size: 12px; line-height: 1.6; }
+      @media (max-width: 520px) { main { padding: 30px 24px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true">L</div>
+      <p class="eyebrow">Ledgerical · Private document processing</p>
+      <h1>OCR Worker</h1>
+      <p class="intro">The worker gateway is online. It accepts authorized document-processing requests from Ledgerical and returns extracted content.</p>
+      <div class="routes" aria-label="Available endpoints">
+        <div class="route"><span class="method">GET</span><code>/healthz</code></div>
+        <div class="route"><span class="method">POST</span><code>/v1/process</code></div>
+      </div>
+      <p class="foot">Processing requires a valid signed request. This page does not accept or store uploaded documents.</p>
+    </main>
+  </body>
+</html>
