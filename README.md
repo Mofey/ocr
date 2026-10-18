@@ -263,6 +263,9 @@ Before Docker starts, the bootstrap places the VM supervisor processes in a
 separate cgroup leaf and enables CPU, memory and process controllers for the
 parser containers. This supports the managed image's initial threaded cgroup
 layout while keeping the parser's resource limits mandatory.
+Process migration is retried for up to two seconds because the live process
+list can change during startup. Documents are accepted only after controller
+setup and the restricted container probe both succeed.
 
 On success, the command prints values in this form:
 
@@ -506,7 +509,7 @@ only deletes stopped or failed slots and never resumes or snapshots a job.
 | Preparation fails while creating upload directories, uploading source or verifying it | Use the current preparation script and rerun `npm run prepare:snapshot`. It creates parent directories recursively and verifies uploaded hashes and executable scripts. The error includes the precise stage and safe HTTP/filesystem codes; share those diagnostics when reporting a failure. |
 | `OCR_WORKER_NOT_CONFIGURED` | Check the worker secret, snapshot ID, region and slot settings, then redeploy. |
 | `INVALID_OCR_JOB_GRANT` | Check the issuer/worker secrets, signed fields, exact file bytes and clocks. |
-| `OCR_SANDBOX_UNAVAILABLE` | Check the prepared snapshot and required runtime restrictions; keep the guards enabled. |
+| `OCR_SANDBOX_UNAVAILABLE` | Inspect the accompanying `OCR_SANDBOX_BOOT_FAILED` stage and exit code. Cgroup setup retries changes in the live process list; persistent failures still block receipt transfer. After changing `sandbox/boot.sh`, prepare a new trusted snapshot, update the Production snapshot ID and redeploy. Keep the runtime guards enabled. |
 | `OCR_WORKER_TIMEOUT` | Measure snapshot restore and model startup against the request budgets. |
 | `OCR_WORKER_BUSY` | Wait for the active job, or recover an expired stale slot. |
 | `OCR_SANDBOX_CLEANUP_INCOMPLETE` | Wait for VM expiration, then remove the stopped slot. |

@@ -2,6 +2,7 @@ import { Sandbox } from '@vercel/sandbox';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sdkAuth } from '../lib/sandbox.mjs';
+import { bootstrapFailureDetails } from '../lib/bootstrap-diagnostics.mjs';
 import { loadLocalAuthentication } from './local-auth.mjs';
 import { readTrustedSnapshotFiles, safePreparationFailure, uploadTrustedSnapshotFiles } from '../lib/snapshot-preparation.mjs';
 import './check.mjs';
@@ -36,8 +37,7 @@ try {
   await sandbox.update({ networkPolicy: 'deny-all' }, { signal: AbortSignal.timeout(30000) });
   const probe = await sandbox.runCommand({ cmd: '/opt/ledgerical/boot.sh', sudo: true, signal: AbortSignal.timeout(30000) });
   if (probe.exitCode !== 0) {
-    const diagnostic = (await probe.stderr()).match(/^OCR_SANDBOX_BOOT_FAILED stage=(configure_cgroups|start_docker|disable_swap|mount_job_tmpfs|check_parser_image|restricted_container_probe) exit=([0-9]{1,3})$/m);
-    if (diagnostic) console.error(`Runtime check failed: stage=${diagnostic[1]} exit=${diagnostic[2]}`);
+    console.error('Runtime check failed:', bootstrapFailureDetails(await probe.stderr(), probe.exitCode));
     throw new Error('runtime restrictions unavailable');
   }
   stage = 'clean temporary bootstrap state';

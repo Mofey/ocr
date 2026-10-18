@@ -20,13 +20,24 @@ if [ "$(cat "$cgroup_root/cgroup.type")" = 'domain threaded' ]; then
 fi
 [ "$(cat "$cgroup_root/cgroup.type")" = domain ]
 mkdir -p "$cgroup_root/ledgerical-supervisor"
-while IFS= read -r process_id; do
-  printf '%s\n' "$process_id" > "$cgroup_root/ledgerical-supervisor/cgroup.procs" || {
-    # A process that exited during enumeration needs no migration.
-    if kill -0 "$process_id" 2>/dev/null; then exit 1; fi
-  }
-done < "$cgroup_root/cgroup.procs"
-printf '%s\n' '+cpu +memory +pids' > "$cgroup_root/cgroup.subtree_control"
+# cgroup.procs is a live listing. Processes can fork, exit or become zombies
+# while it is read; kill -0 can still succeed for an already exiting process.
+# Repeat migration until the kernel confirms the domain controllers are on.
+# The bounded loop fails closed if any remaining process cannot be moved.
+attempt=0
+while :; do
+  stage=migrate_cgroup_processes
+  while IFS= read -r process_id; do
+    printf '%s\n' "$process_id" > "$cgroup_root/ledgerical-supervisor/cgroup.procs" 2>/dev/null || :
+  done < "$cgroup_root/cgroup.procs"
+  stage=enable_cgroup_controllers
+  if printf '%s\n' '+cpu +memory +pids' > "$cgroup_root/cgroup.subtree_control" 2>/dev/null; then
+    break
+  fi
+  attempt=$((attempt + 1))
+  [ "$attempt" -lt 20 ] || exit 1
+  sleep 0.1
+done
 stage=start_docker
 # No daemon log contains document output; no TCP Docker listener or bridge.
 rm -f /var/run/docker.pid /var/run/docker.sock
