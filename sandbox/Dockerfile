@@ -23,8 +23,8 @@ RUN update-ca-certificates \
     && mkdir -p /opt/paddle-cache /tmp/worker-home /input /output \
     && chown -R 10001:10001 /opt/paddle-cache /tmp/worker-home
 
-COPY requirements.txt requirements-linux.lock ./
-RUN pip install --no-cache-dir --cert /etc/ssl/certs/ca-certificates.crt -r requirements-linux.lock
+COPY paddle-dependencies.in paddle-dependencies-linux.lock ./
+RUN pip install --no-cache-dir --cert /etc/ssl/certs/ca-certificates.crt -r paddle-dependencies-linux.lock
 COPY ocr_worker/ ./ocr_worker/
 # Models are fetched ONCE, during trusted preparation, before any user input.
 RUN HF_HUB_OFFLINE=0 python -c 'from ocr_worker.ocr import _get_ocr_reader; _get_ocr_reader()' \

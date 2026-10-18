@@ -10,8 +10,8 @@
     "sandbox/ocr_worker/processor.py": "ec4b1b49d50c8fd2d3f142165a0bf758365827d796d5c3e477addd838b7f1548",
     "sandbox/ocr_worker/ocr.py": "8140efbb4d9096e7dde7d0d63fe8611a01143535efc05c31c7e4a30db94b556a",
     "sandbox/ocr_worker/bank_statement_pdf.py": "d49c1a7ac6194daef6ca49b72a671f81fcc80d14f58d0f3d8cdd0812c1adba00",
-    "sandbox/requirements.txt": "e9c38eea37df840993c70018822f12d20fa2ff546215603c67283b43b63ecf33",
-    "sandbox/requirements-linux.lock": "195c0102653bf68b7d46f58602039a21813c2aa31f88ce381f440d60ef8be362"
+    "sandbox/paddle-dependencies.in": "e9c38eea37df840993c70018822f12d20fa2ff546215603c67283b43b63ecf33",
+    "sandbox/paddle-dependencies-linux.lock": "7f57c4663e01fa64a39e83fa81b40748ca3f2961fed4358cac896f61fdc68109"
   },
   "lineEndings": "LF"
 }
