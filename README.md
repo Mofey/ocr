@@ -412,7 +412,7 @@ Errors use an envelope such as:
 | Parser scratch | 64 MiB RAM-only `/tmp` |
 | VM input/output mount | 16 MiB RAM-only storage |
 | Parser deadline | 25 seconds |
-| Gateway processing budget | 32 seconds, followed by bounded cleanup |
+| Gateway processing budget | 28 seconds, followed by up to 7 seconds of cleanup |
 | Job VM lifetime | 45 seconds |
 | Output | At most 1 MiB, 200,000 text characters and 500 layout lines |
 
@@ -439,6 +439,14 @@ model startup, OCR quality, memory use and cleanup behavior on the target host.
   command or Docker logs. Results are retrieved through a bounded file read.
 - Cleanup stops and deletes the job VM after success or failure. The VM also
   has a hard expiration in case the coordinating Function is interrupted.
+
+Cleanup uses one Sandbox delete request with an independent seven-second
+deadline. Vercel's [delete operation](https://github.com/vercel/sdk/blob/main/docs/sdks/sandboxes/README.md#deletesandbox)
+stops running sessions before deleting the sandbox. A confirmed deletion (or
+HTTP 404 for an already deleted sandbox) completes cleanup. An unconfirmed
+deletion still fails the request and logs `OCR_SANDBOX_DELETE_FAILED` with
+only a safe error type and HTTP status. The gateway's total processing and
+cleanup budget stays below Main's 36-second worker timeout.
 
 The worker provides containment controls; it does not scan for malware.
 Parser and kernel vulnerabilities remain possible. Preserve the runtime guards

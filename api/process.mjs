@@ -1,12 +1,12 @@
 import { configuration, jsonResponse, readInput, verifyGrant, WorkerError } from '../lib/protocol.mjs';
-import { processInSandbox } from '../lib/sandbox.mjs';
+import { PROCESSING_BUDGET_MS, processInSandbox } from '../lib/sandbox.mjs';
 
 export default {
   /** @param {Request} request */
   async fetch(request) {
     if (request.method !== 'POST') return jsonResponse(405, { detail: { error: 'METHOD_NOT_ALLOWED' } });
-    // Main waits 36 seconds; reserve three seconds for stopping/deleting the VM.
-    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(32000)]);
+    // Main waits 36 seconds; processing + independent cleanup take at most 35.
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(PROCESSING_BUDGET_MS)]);
     let body;
     try {
       const config = configuration();
