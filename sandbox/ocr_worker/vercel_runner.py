@@ -30,6 +30,24 @@ def _execute() -> dict:
     if len(raw) > MAX_ENVELOPE_BYTES:
         raise ValueError('input limit')
     envelope = json.loads(raw)
+    if isinstance(envelope, dict) and envelope.get('grant', {}).get('schemaVersion') == 3:
+        if set(envelope) != {'grant', 'contentFile'} or envelope['contentFile'] != 'source.bin':
+            raise ValueError('file input schema')
+        claims = envelope['grant']
+        if claims.get('purpose') not in {'validate', 'tabular', 'signature-image', 'public-image'}:
+            raise ValueError('file purpose')
+        with Path('/input/source.bin').open('rb') as source:
+            body = source.read(10 * 1024 * 1024 + 1)
+        if len(body) > 10 * 1024 * 1024:
+            raise ValueError('file input limit')
+        prepare_parser_sandbox()
+        from .file_processor import process_file
+        try:
+            return {'status': 200, 'result': process_file(claims, body)}
+        except ImportError:
+            return {'status': 503, 'error': 'OCR_WORKER_UNAVAILABLE'}
+        except Exception:
+            return {'status': 422, 'error': 'INVALID_DOCUMENT_FORMAT'}
     if not isinstance(envelope, dict) or set(envelope) != {'grant', 'contentBase64'}:
         raise ValueError('input schema')
     claims = envelope['grant']
@@ -93,7 +111,7 @@ def main() -> int:
     try:
         output = _execute()
         encoded = json.dumps(output, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode()
-        if len(encoded) > MAX_CHILD_IPC_BYTES:
+        if len(encoded) > 3 * 1024 * 1024:
             raise ValueError('output limit')
     except BaseException:
         encoded = b'{"status":503,"error":"OCR_WORKER_UNAVAILABLE"}'

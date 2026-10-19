@@ -8,7 +8,7 @@
 
 <p align="center">
   <b>🧠 Read documents. 🔏 Verify requests. 🫧 Isolate every job.</b><br />
-  PaddleOCR extraction with Vercel Functions and ephemeral Sandbox workers.
+  PaddleOCR extraction and isolated file processing with Vercel Functions and ephemeral Sandbox workers.
 </p>
 
 <p align="center">
@@ -56,6 +56,13 @@ extraction, review and storage workflows.
 - [📜 License and acknowledgements](#license-and-acknowledgements)
 
 </details>
+
+### File processing beyond OCR
+
+The same isolated environment now handles file validation, CSV/Excel imports,
+signature images and canonical public images. See the [security architecture,
+deployment order and staging acceptance plan](docs/file-processing-security.md).
+A new prepared snapshot and CMD's `OCR_WORKER_URL` setting are required.
 
 <a name="features"></a>
 

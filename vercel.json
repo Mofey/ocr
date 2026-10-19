@@ -6,10 +6,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": "public",
   "functions": {
+    "api/file-process.mjs": { "maxDuration": 60 },
     "api/process.mjs": { "maxDuration": 60 },
     "api/health.mjs": { "maxDuration": 10 }
   },
   "rewrites": [
+    { "source": "/v1/files/process", "destination": "/api/file-process" },
     { "source": "/v1/process", "destination": "/api/process" },
     { "source": "/healthz", "destination": "/api/health" }
   ]
