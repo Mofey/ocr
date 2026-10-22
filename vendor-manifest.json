@@ -13,7 +13,7 @@
     "sandbox/paddle-dependencies.in": "e9c38eea37df840993c70018822f12d20fa2ff546215603c67283b43b63ecf33",
     "sandbox/paddle-dependencies-linux.lock": "7f57c4663e01fa64a39e83fa81b40748ca3f2961fed4358cac896f61fdc68109",
     "sandbox/ocr_worker/vercel_runner.py": "5f3cc25f56bf648792dd456a46886a18af1d2810662e9408be6f3929a0040d75",
-    "sandbox/ocr_worker/file_processor.py": "1072a5f3f6d4f45c8ee7392de37d65160fd9839539a86fac1440495b0410fa05"
+    "sandbox/ocr_worker/file_processor.py": "171c4a327848bb966bd1af5b0b4ca795c0ad819a57ed3a96afd1cd2fc78a4353"
   },
   "lineEndings": "LF"
 }

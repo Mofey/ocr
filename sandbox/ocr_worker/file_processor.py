@@ -188,6 +188,7 @@ def process_file(claims: dict, body: bytes) -> dict:
             if purpose in ('signature-image', 'public-image'):
                 with Image.open(io.BytesIO(body)) as original:
                     canonical = original.convert('RGBA')
+                    canonical.info.clear()
                     if purpose == 'signature-image':
                         if canonical.width > 4096 or canonical.height > 4096 or sum(1 for r, g, b, a in canonical.getdata() if a > 32 and min(r, g, b) < 235) <= 8:
                             raise ValueError('empty signature')
