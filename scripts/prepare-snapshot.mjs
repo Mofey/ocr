@@ -24,6 +24,16 @@ try {
     resources: { vcpus: 4 }, region, timeout: 45 * 60 * 1000,
   });
   await uploadTrustedSnapshotFiles(sandbox, files, value => { stage = value; });
+  stage = 'check cgroup prerequisites';
+  console.log('Checking cgroup support before installing Docker and OCR dependencies.');
+  const cgroups = await sandbox.runCommand({
+    cmd: '/vercel/sandbox/build/boot.sh', args: ['--check-cgroups'], sudo: true,
+    signal: AbortSignal.timeout(15000),
+  });
+  if (cgroups.exitCode !== 0) {
+    console.error('Cgroup prerequisite check failed:', bootstrapFailureDetails(await cgroups.stderr(), cgroups.exitCode));
+    throw new Error('cgroup prerequisites unavailable');
+  }
   stage = 'install Docker and build PaddleOCR image';
   console.log('Installing Docker, pinned Python packages and OCR models. This can take several minutes.');
   const build = await sandbox.runCommand({
