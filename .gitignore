@@ -16,3 +16,7 @@ htmlcov/
 
 .vercel
 .env*
+
+# Local deployment credentials must never be shipped in source archives.
+.env.local
+.env.*.local
