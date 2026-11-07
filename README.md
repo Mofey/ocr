@@ -1,6 +1,6 @@
 <a name="top"></a>
 
-<h1 align="center">📄 Ledgerical OCR Worker</h1>
+<h1 align="center">📄 Ledgerical OCR &amp; File Processing Worker</h1>
 
 <p align="center">
   <img src="docs/assets/banner.svg" width="1280" alt="Ledgerical OCR Worker: signed input, isolated parsing and typed output" />
@@ -8,7 +8,7 @@
 
 <p align="center">
   <b>🧠 Read documents. 🔏 Verify requests. 🫧 Isolate every job.</b><br />
-  PaddleOCR extraction and isolated file processing with Vercel Functions and ephemeral Sandbox workers.
+  OCR, file validation, table extraction and image processing with Vercel Functions and ephemeral Sandbox workers.
 </p>
 
 <p align="center">
@@ -28,10 +28,20 @@
 
 ---
 
-The worker turns signed PDF and image requests into **text, normalized layout
-lines, confidence scores and processing metadata**. Python parsers run in a
-fresh sandbox for each job. Applications use the returned JSON for their own
-extraction, review and storage workflows.
+An open-source document-processing worker for developers who need OCR, table
+extraction and image conversion behind a signed HTTP API. Deploy your own
+instance, connect it to your application and receive bounded JSON results.
+
+The worker supports two kinds of requests:
+
+- **OCR:** PDF/image text, normalized layout lines, confidence scores, statement
+  proposals and processing metadata.
+- **File processing:** format validation, CSV/Excel records and canonical PNG
+  images.
+
+Use it for receipt tools, document review, import previews or other workflows
+that need structured output from uploaded files. Contributions to extraction
+quality, documentation and supported formats are welcome.
 
 > [!IMPORTANT]
 > 🧪 **Experimental project.** Validate OCR accuracy, cold-start timing and runtime
@@ -42,7 +52,7 @@ extraction, review and storage workflows.
 
 - [✨ Features](#features)
 - [🎬 Demonstration](#demo)
-- [🧩 Architecture](#architecture)
+- [🧩 How it works](#how-it-works)
 - [🧰 Requirements](#requirements)
 - [🚀 Quick start](#quick-start)
 - [⚙️ Configuration](#configuration)
@@ -52,17 +62,21 @@ extraction, review and storage workflows.
 - [🧯 Operations and troubleshooting](#operations-and-troubleshooting)
 - [🛠️ Development](#development)
 - [🤝 Contributing](#contributing)
-- [🔗 Ledgerical integration](#ledgerical-integration)
+- [🔗 Connect your application](#application-integration)
 - [📜 License and acknowledgements](#license-and-acknowledgements)
 
 </details>
 
 ### File processing beyond OCR
 
-The same isolated environment now handles file validation, CSV/Excel imports,
-signature images and canonical public images. See the [security architecture,
-deployment order and staging acceptance plan](docs/file-processing-security.md).
-A new prepared snapshot and CMD's `OCR_WORKER_URL` setting are required.
+File processing uses **`POST /v1/files/process` with schema 3 grants**. Existing
+OCR uses **`POST /v1/process` with schema 1 or 2 grants**. These endpoints have
+different formats, input modes, result schemas and limits; a file that passes
+validation is not necessarily eligible for OCR.
+
+For file processing, prepare a snapshot from the current source. Configure
+`FILE_PROCESSOR_SOURCE_ORIGIN` if you use signed source URLs. The [API](#api)
+and [configuration](#configuration) sections describe both request types.
 
 <a name="features"></a>
 
@@ -71,12 +85,15 @@ A new prepared snapshot and CMD's `OCR_WORKER_URL` setting are required.
 | | What you get |
 | --- | --- |
 | 🧠 **PaddleOCR on CPU** | PP-OCRv6 small detection and recognition models. |
-| 📑 **Document formats** | PDF, PNG, JPEG and WebP within explicit input and decoding limits. |
+| 📑 **OCR formats** | PDF, PNG, JPEG and WebP within explicit input and decoding limits. |
 | 🔎 **Text + layout** | Native PDF text extraction, bounded OCR fallback, normalized lines and confidence metadata. |
 | 🏦 **Statement proposals** | Bank-statement text proposals for review by the consuming application. |
+| 📁 **File validation** | PDF, PNG, JPEG, WebP, CSV, DOCX and XLSX, with purpose-specific limits. |
+| 📊 **Table extraction** | Bounded CSV records or the first XLSX worksheet; formulas are not evaluated. |
+| 🖼️ **Canonical images** | Metadata-stripped PNG output for signature and public-image purposes. |
 | 🔏 **Signed requests** | HMAC-SHA256 authorization bound to scope, size and the exact file's SHA-256. |
 | 🫧 **Temporary processing** | Fresh job sandboxes with bounded RAM mounts for input, output and scratch. |
-| 🔌 **Independent deployment** | A standalone worker with no application database or object-storage dependency. |
+| 🔌 **Independent deployment** | No application database or long-lived storage credentials. The trusted gateway can fetch a signed private object from one configured storage origin. |
 
 <a name="demo"></a>
 
@@ -114,8 +131,8 @@ node --env-file=.env.local examples/process-document.mjs docs/assets/sample-rece
 
 The example signs a fresh 60-second grant, sends the sample, validates the
 returned bindings and prints the response JSON in your terminal. It generates
-temporary request/workspace UUIDs; production applications should supply the
-authenticated workspace's UUID.
+temporary request and scope UUIDs. In your own application, supply the UUID
+that represents the request's authorized scope in `workspaceId`.
 
 **This command runs a real OCR job and uses billable Vercel Sandbox resources.**
 Run it from a trusted local or server environment, where the signing key can
@@ -155,19 +172,19 @@ request/workspace IDs, source digest/size/type and processing metrics.
 
 </details>
 
-<a name="architecture"></a>
+<a name="how-it-works"></a>
 
-## 🧩 Architecture
+## 🧩 How it works
 
 ```mermaid
 flowchart LR
-    A["📤 Trusted application"]:::app -->|Signed grant + file| B["🔏 Vercel gateway"]:::gateway
+    A["Your application"]:::app -->|Signed request| B["Worker API"]:::gateway
     subgraph VM["🫧 Fresh Sandbox VM · outbound denied"]
-        C["🧱 Restricted container"]:::container --> D["🧠 PaddleOCR / PDF parser"]:::parser
+        C["🧱 Restricted container"]:::container --> D["OCR or purpose-specific file parser"]:::parser
     end
     B -->|Validated input| C
     D -->|Bounded JSON| B
-    B -->|OCR result| A
+    B -->|JSON result| A
 
     classDef app fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a,stroke-width:2px
     classDef gateway fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95,stroke-width:2px
@@ -176,15 +193,14 @@ flowchart LR
     style VM fill:#f0fdfa,stroke:#5eead4,color:#134e4a
 ```
 
-The trusted application issues a short-lived grant. The gateway verifies its
-signature, scope, size and SHA-256 before allocating a sandbox. The parser
-container loads models from a prepared snapshot and processes the document
-with outbound network access disabled. The gateway then stops and deletes
-the job sandbox.
+Your server signs a short-lived request containing the file's scope, size and
+SHA-256. The worker verifies the request, processes the authorized bytes in a
+temporary sandbox and returns JSON. The sandbox is deleted after the job.
 
-The persistent snapshot contains trusted code and model assets. Job sandboxes
-have persistence disabled; input, output and scratch files use bounded RAM
-mounts. The grant signing key and Vercel credentials stay outside the parser VM.
+Code and model assets are prepared ahead of time. OCR requests use PaddleOCR
+when needed; file validation, table extraction and image conversion use their
+own parsers. See [Security](#security) for the worker's isolation controls and
+their limitations.
 
 <a name="requirements"></a>
 
@@ -205,8 +221,8 @@ resources. Configure spending controls for the project.
 
 ## 🚀 Quick start
 
-Fork or clone this repository, then run commands from its root. When working
-inside the Ledgerical monorepo, this directory is `ocr/`.
+Fork or clone this repository, then run the following commands from the
+directory containing `package.json` and `vercel.json`.
 
 ### 1️⃣ Create the Vercel project
 
@@ -215,7 +231,7 @@ Import the repository into a dedicated Vercel project with these settings:
 | Setting | Value |
 | --- | --- |
 | Framework Preset | Other |
-| Root Directory | **Leave empty** for the standalone OCR repository; `ocr` only when importing the Ledgerical monorepo |
+| Root Directory | **Leave empty** when this repository is the project root. For a larger repository, select the directory containing this worker's `package.json` and `vercel.json`. |
 | Node.js version | 24.x |
 | Install command | `npm ci` |
 | Build command | `npm run build` |
@@ -246,16 +262,15 @@ Select the worker project when linking. The environment pull creates
 `.env.local` with a local `VERCEL_OIDC_TOKEN`. The setup scripts load this file
 and check for authentication before creating cloud resources.
 
-Use [`.env.example`](.env.example) as a reference for worker settings. Pull
-Vercel authentication with the command above; copying the example file or
-creating an empty `.env.local` does not authenticate the script. Keep the
-generated file out of version control.
+Use [Configuration](#configuration) as a reference for worker settings. Pull
+Vercel authentication with the command above; creating an empty `.env.local`
+does not authenticate the script. Keep the generated file out of version control.
 
 In deployed Functions, Vercel manages OIDC authentication. For external CI,
 the scripts also accept `VERCEL_TOKEN`, `VERCEL_TEAM_ID` and
 `VERCEL_PROJECT_ID` together. See [Vercel authentication documentation](https://vercel.com/docs/sandbox/concepts/authentication).
 
-### 3️⃣ Prepare the model snapshot
+### 3️⃣ Prepare the code and model snapshot
 
 ```sh
 npm run prepare:snapshot
@@ -266,13 +281,12 @@ image and downloads the OCR models. It then denies outbound traffic, checks
 the runtime restrictions and saves a snapshot containing code and models.
 The preparation VM is deleted afterward.
 
-Before Docker starts, the bootstrap places the VM supervisor processes in a
-separate cgroup leaf and enables CPU, memory and process controllers for the
-parser containers. This supports the managed image's initial threaded cgroup
-layout while keeping the parser's resource limits mandatory.
-Process migration is retried for up to two seconds because the live process
-list can change during startup. Documents are accepted only after controller
-setup and the restricted container probe both succeed.
+Preparation checks cgroup prerequisites before installing Docker. At job
+startup, the bootstrap enables CPU, memory and process controllers before
+accepting file bytes. Where a delegated domain requires it, supervisor
+processes move to a separate leaf; controller setup retries for up to two
+seconds because the process list can change. Unsupported cgroup layouts fail
+closed. Both controller setup and the restricted container probe must succeed.
 
 On success, the command prints values in this form:
 
@@ -294,18 +308,20 @@ Production environment, then deploy:
 npx vercel --prod
 ```
 
-Use the resulting stable HTTPS origin for application requests. The processing
-endpoint must accept authenticated server-to-server calls without an
-interactive Vercel login screen. Every OCR request still requires a valid
-signed grant.
+Use the resulting stable HTTPS origin for application requests. Both processing
+endpoints must accept authenticated server-to-server calls without an
+interactive Vercel login screen. Every processing request still requires a
+valid signed grant.
 
 ### 5️⃣ Connect your application
 
-Send requests to `POST /v1/process` using the [API contract](#api). Keep the
-signing key in trusted server environments. The calling application handles
-user authorization, usage quotas and review of the extracted content.
+Use `POST /v1/process` for OCR or `POST /v1/files/process` for validation,
+table extraction and image processing, following the [API contract](#api).
+Keep the signing key in trusted server environments. The calling application
+handles user authorization, usage quotas and review of the extracted content.
 
-For Ledgerical, see [Ledgerical integration](#ledgerical-integration).
+See [Connect your application](#application-integration) for a short integration
+checklist.
 
 <a name="configuration"></a>
 
@@ -318,8 +334,9 @@ redeploy after changing them.
 | --- | --- | --- |
 | `OCR_WORKER_GRANT_SECRET` | 🟢 Yes | A random secret of at least 32 UTF-8 bytes, shared with the trusted grant issuer. |
 | `OCR_SANDBOX_SNAPSHOT_ID` | 🟢 Yes | The `snap_...` ID printed by `npm run prepare:snapshot`. |
+| `FILE_PROCESSOR_SOURCE_ORIGIN` | For signed object reads | Exact HTTPS origin allowed for file-source requests, such as `https://storage.example.com`. No bucket, path, query, fragment or embedded credentials. Inline requests do not require this setting. |
 | `OCR_SANDBOX_REGION` | ⚪ No | Snapshot and job region; defaults to `iad1`. Use the same region during preparation and processing. |
-| `OCR_SANDBOX_SLOT` | ⚪ No | Fixed sandbox slot name; defaults to `ledgerical-ocr-active`. Keep one slot per project to limit concurrent jobs. |
+| `OCR_SANDBOX_SLOT` | ⚪ No | Fixed sandbox slot name shared by OCR and file-processing jobs; defaults to `ledgerical-ocr-active`. Keep one slot per project to limit concurrent jobs. |
 
 For a new installation, a 32-byte random secret can be generated locally:
 
@@ -327,14 +344,23 @@ For a new installation, a 32-byte random secret can be generated locally:
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Store the result in the worker and grant issuer's secret settings. An existing
-Ledgerical installation should reuse CMD's configured grant secret. Never
-commit a real secret or put it in browser code, model snapshots or parser
-environment variables.
+Configure the same value on the worker and on your server-side request signer.
+Keep the secret out of source control, browser bundles, model snapshots and
+parser environment variables.
+
+The included demo reads `OCR_WORKER_URL` to find your deployed worker. Vercel
+authentication is separate from the file grant secret; use the credentials
+described in Quick start in the trusted gateway or setup environment.
 
 <a name="api"></a>
 
 ## 🔌 API
+
+| Endpoint | Grant header | Schema | Purpose |
+| --- | --- | --- | --- |
+| `GET /healthz` | None | — | Configuration diagnostics; no processing. |
+| `POST /v1/process` | `X-Ledgerical-OCR-Job-Grant` | 1 or 2 | Immutable-document OCR or transient receipt OCR. |
+| `POST /v1/files/process` | `X-Ledgerical-File-Grant` | 3 | File validation, tabular records or canonical images. |
 
 ### 🩺 Health
 
@@ -345,11 +371,21 @@ allocate a sandbox or run inference. A configured response looks like:
 {
   "status": "configured",
   "worker": "vercel-sandbox-ocr-v1",
-  "inferenceVerified": false
+  "inferenceVerified": false,
+  "fileProcessing": {
+    "protocolVersion": 3,
+    "sourceOriginConfigured": true,
+    "inferenceVerified": false
+  }
 }
 ```
 
-### 📤 Process a document
+`sourceOriginConfigured` reports the storage-origin setting separately. The
+endpoint can return HTTP 200 with that value `false`; this does not establish
+readiness for storage-backed file processing. Health does not check snapshot
+existence, live credentials, parser restrictions, storage access or OCR accuracy.
+
+### 📤 OCR a document
 
 `POST /v1/process` accepts the raw file bytes with these headers:
 
@@ -369,29 +405,25 @@ signature = base64url(HMAC_SHA256(secret, payload))
 grant = payload + "." + signature
 ```
 
-All grants include:
+OCR grants include:
 
 | Claim | Meaning |
 | --- | --- |
 | `schemaVersion` | `1` for an immutable document; `2` for a transient receipt preview |
 | `audience` | Exactly `document-ocr-worker` |
-| `workspaceId` | Workspace UUID |
+| `workspaceId` | Application-defined scope UUID. |
 | `filename` | File basename, up to 255 characters, with an allowed extension |
 | `contentType` | MIME type matching the filename extension |
 | `sizeBytes` | Exact input byte length |
 | `sha256` | SHA-256 digest of the exact input bytes |
 | `issuedAt`, `expiresAt` | Unix timestamps in seconds; grant lifetime at most 120 seconds |
 
-Schema 1 also requires `jobId`, `documentId`, `versionId` and `objectKey`.
-The object key must have this exact version-bound form:
+**Use schema 2 for the standalone receipt-preview example.** It requires
+`requestId` and `purpose: "receipt-preview"` alongside the fields above.
+UUID fields must contain valid UUIDs. Unknown claims are rejected.
 
-```text
-immutable/workspaces/{workspaceId}/documents/{documentId}/versions/{versionId}
-```
-
-Schema 2 requires `requestId` and `purpose: "receipt-preview"`. UUID fields
-must contain valid UUIDs. Unknown claims are rejected. The canonical validation
-rules are in [`lib/protocol.mjs`](lib/protocol.mjs) and
+Schema 1 is also available for version-bound document jobs. Its additional
+fields and validation rules are defined in [`lib/protocol.mjs`](lib/protocol.mjs) and
 [`sandbox/ocr_worker/grant.py`](sandbox/ocr_worker/grant.py).
 
 Successful responses contain extracted text, normalized `layoutLines`,
@@ -401,15 +433,73 @@ scope/hash/size bindings. Full response models are defined in
 Consumers should validate those bindings and treat extracted content as
 untrusted input.
 
-Errors use an envelope such as:
+Both APIs use error envelopes such as:
 
 ```json
 {"detail":{"error":"INVALID_OCR_JOB_GRANT"}}
 ```
 
+### 📁 Process a file
+
+`POST /v1/files/process` uses a separate `X-Ledgerical-File-Grant` header and
+the same base64url/HMAC signing algorithm described above. Its signed claims
+are **exactly**:
+
+| Claim | Value |
+| --- | --- |
+| `schemaVersion` | `3` |
+| `audience` | `document-file-worker` |
+| `workspaceId`, `requestId` | Valid application-scope and request UUIDs. |
+| `purpose` | `validate`, `tabular`, `signature-image` or `public-image`. |
+| `filename`, `contentType` | A basename up to 255 characters, with a matching allowed extension/MIME type. |
+| `sizeBytes`, `sha256` | Exact source size and lowercase 64-character SHA-256 hex digest. |
+| `sourceUrl` | Empty string for inline bytes, or a short-lived signed HTTPS object URL. This field is always present. |
+| `issuedAt`, `expiresAt` | Unix seconds, no more than 120 seconds apart. Issue time may be at most 30 seconds ahead or 120 seconds behind the gateway clock. |
+
+Unknown or missing claims are rejected. Do not send an OCR grant to this API.
+
+#### Input modes
+
+| Mode | Request body and headers |
+| --- | --- |
+| Inline, at most 2 MiB | `sourceUrl: ""`; raw bytes with `Content-Type: application/octet-stream` and exact `Content-Length: sizeBytes`. No compressed request body. |
+| Signed object read | Nonempty `sourceUrl`; empty request body with `Content-Length: 0`. The trusted gateway fetches the source, checks its declared/actual size and digest, and refuses redirects or compressed responses. |
+
+Signed sources must match `FILE_PROCESSOR_SOURCE_ORIGIN` and the scope-path
+checks in [`lib/file-processing.mjs`](lib/file-processing.mjs). Your server
+selects the authorized source and signs the request. The signed URL is removed
+before the job enters the parser VM. Use this mode for inputs over 2 MiB; it
+does not increase the purpose-specific file limits.
+
+#### Purposes and results
+
+| Purpose | Accepted inputs | Result |
+| --- | --- | --- |
+| `validate` | PDF, PNG, JPEG, WebP, CSV, DOCX, XLSX | Bounded format checks; empty `records` and `imageBase64`. No OCR or document text extraction. |
+| `tabular` | CSV, XLSX | `records` as arrays of strings; the first XLSX worksheet only. No formula evaluation; saved formula values may be returned. |
+| `signature-image` | PNG, JPEG, WebP | `imageBase64` containing a canonical PNG; rejects empty signatures and oversized images. |
+| `public-image` | PNG, JPEG, WebP | `imageBase64` containing a canonical PNG, resized to fit within 1024 × 1024 pixels. |
+
+Every successful schema 3 response includes `schemaVersion`, `workspaceId`,
+`requestId`, `purpose`, `sourceSha256`, `sourceSizeBytes`, `detectedContentType`,
+`contentValidated`, `records` and `imageBase64`. Consumers must verify the
+bindings before accepting the records or image. The image is a derivative;
+the response does not make the private original public.
+
+Office archives are processed within expansion/XML limits. Macros are rejected,
+external resources are not fetched, and formulas are not executed. Format
+validation is not a malware scan or a guarantee that an original is safe to open.
+
+The canonical contract and checks are in
+[`lib/file-processing.mjs`](lib/file-processing.mjs),
+[`sandbox/ocr_worker/file_processor.py`](sandbox/ocr_worker/file_processor.py)
+and [`sandbox/ocr_worker/vercel_runner.py`](sandbox/ocr_worker/vercel_runner.py).
+
 <a name="runtime-limits"></a>
 
 ## 📏 Runtime limits
+
+### OCR (`/v1/process`)
 
 | Resource | Limit |
 | --- | --- |
@@ -417,14 +507,40 @@ Errors use an envelope such as:
 | Formats | PDF, PNG, JPEG, WebP |
 | PDF pages | Exactly one |
 | Image pixels | At most 4 million |
-| Concurrent jobs | One named sandbox slot per project; additional requests receive HTTP 429 |
+| OCR child deadline | 25 seconds |
+| Gateway processing budget | 28 seconds, followed by up to 7 seconds of cleanup |
+| Output | At most 1 MiB, 200,000 text characters and 500 layout lines |
+
+### File processing (`/v1/files/process`)
+
+| Resource | Limit |
+| --- | --- |
+| Inline input size | 2 MiB for every format |
+| Signed-source input size | 10 MiB for PDF/DOCX/XLSX; 5 MiB for images/CSV |
+| PDF validation | 1–100 pages; encrypted PDFs rejected. This does not enable multi-page OCR. |
+| Images | One frame; 4 million pixels for signatures, 16 million for other file-image purposes |
+| Signature dimensions | At most 4096 pixels per side |
+| Canonical PNG output | At most 1 MiB decoded; public images fit within 1024 × 1024 pixels |
+| Tabular output | At most 10,001 records, 200 columns, 64 KiB per UTF-8 cell and 2 MiB total cell data |
+| CSV validation without extraction | At most 100,000 rows and 1,000 columns, with bounded cells |
+| Office archives | At most 2,000 entries, 8 MiB per member and 64 MiB total actual expanded data; excessive compression ratios rejected |
+| Gateway processing budget | 20 seconds, followed by up to 7 seconds of cleanup |
+| Output JSON | At most 3 MiB; escaping and envelope overhead can reach this before the cell-data limit |
+
+### Shared isolation limits
+
+| Resource | Limit |
+| --- | --- |
+| Concurrent jobs | One named sandbox slot shared by both APIs per project; slot conflicts receive HTTP 429 |
 | Parser container | One CPU, 1 GiB RAM, 128 processes |
 | Parser scratch | 64 MiB RAM-only `/tmp` |
 | VM input/output mount | 16 MiB RAM-only storage |
-| Parser deadline | 25 seconds |
-| Gateway processing budget | 28 seconds, followed by up to 7 seconds of cleanup |
+| Container command deadline | 28 seconds, also bounded by the gateway deadline |
 | Job VM lifetime | 45 seconds |
-| Output | At most 1 MiB, 200,000 text characters and 500 layout lines |
+
+`vercel.json` permits 60 seconds for each processing Function and 10 seconds
+for health. The shorter application deadlines above still apply. A larger
+Function duration does not increase the file, parser or output limits.
 
 A health response does not establish that inference fits these budgets. Measure
 model startup, OCR quality, memory use and cleanup behavior on the target host.
@@ -433,8 +549,9 @@ model startup, OCR quality, memory use and cleanup behavior on the target host.
 
 ## 🛡️ Security
 
-- Each job uses a fresh, nonpersistent VM with no exposed ports and denied
-  outbound traffic from creation. Job VMs have no storage drives or snapshots.
+- Each job restores trusted code/models into a fresh, nonpersistent VM with no
+  exposed ports and denied outbound traffic from creation. Job code does not
+  attach storage drives or snapshot customer input/output.
 - The parser container runs as a non-root user with a read-only root filesystem,
   no capabilities, no new privileges, no network, no swap and bounded cgroups.
 - Runtime guards check the required restrictions before accepting document bytes.
@@ -443,6 +560,8 @@ model startup, OCR quality, memory use and cleanup behavior on the target host.
   processes, process inspection/signalling and namespace changes.
 - Signing keys, Vercel tokens and application credentials remain outside the
   parser VM. The container needs no database or object-storage access.
+- Only the trusted gateway can fetch the signed source, from the configured
+  storage origin. It strips the URL before sending the job to the parser VM.
 - Input, output and temporary parser files stay in bounded RAM mounts. Model
   weights are read-only; writable caches and locks use temporary scratch space.
 - Document bytes and extracted text are not printed to application, Sandbox
@@ -455,8 +574,10 @@ deadline. Vercel's [delete operation](https://github.com/vercel/sdk/blob/main/do
 stops running sessions before deleting the sandbox. A confirmed deletion (or
 HTTP 404 for an already deleted sandbox) completes cleanup. An unconfirmed
 deletion still fails the request and logs `OCR_SANDBOX_DELETE_FAILED` with
-only a safe error type and HTTP status. The gateway's total processing and
-cleanup budget stays below Main's 36-second worker timeout.
+only a safe error type and HTTP status. OCR budgets 28 seconds for processing
+plus 7 seconds for cleanup; file processing uses 20 plus 7 seconds. Allow for
+network overhead when setting your client's timeout. These are request budgets,
+not latency guarantees.
 
 The worker provides containment controls; it does not scan for malware.
 Parser and kernel vulnerabilities remain possible. Preserve the runtime guards
@@ -511,14 +632,20 @@ only deletes stopped or failed slots and never resumes or snapshots a job.
 | Symptom | Action |
 | --- | --- |
 | `OCR_DEPLOYMENT_ROOT_INVALID`, missing `public` output, or Paddle installing during the gateway build | Clear `sandbox` from Vercel's Root Directory. Leave it empty for the standalone repository, save and redeploy. The gateway uses Node.js; Python dependencies are installed when preparing the sandbox snapshot. |
-| `/healthz` returns `OCR_WORKER_NOT_CONFIGURED` | The gateway is reachable. Its `detail.missingOrInvalid` array lists variable names to fix. Set the existing CMD grant secret and a snapshot ID printed by successful `npm run prepare:snapshot` in the worker's **Production** environment, then redeploy. A local `.env` file does not configure Vercel. |
+| `/healthz` returns `OCR_WORKER_NOT_CONFIGURED` | Its `detail.missingOrInvalid` array lists variable names to fix. Configure the shared signing secret and a snapshot ID printed by successful `npm run prepare:snapshot` in the deployment's environment, then redeploy. A local `.env` file does not configure Vercel. |
 | Missing `.env.local` or authentication | Run `npx vercel login`, `npx vercel link` and `npx vercel env pull .env.local` from the repository root. |
 | Preparation fails while creating upload directories, uploading source or verifying it | Use the current preparation script and rerun `npm run prepare:snapshot`. It creates parent directories recursively and verifies uploaded hashes and executable scripts. The error includes the precise stage and safe HTTP/filesystem codes; share those diagnostics when reporting a failure. |
 | `OCR_WORKER_NOT_CONFIGURED` | Check the worker secret, snapshot ID, region and slot settings, then redeploy. |
 | `INVALID_OCR_JOB_GRANT` | Check the issuer/worker secrets, signed fields, exact file bytes and clocks. |
+| `INVALID_FILE_JOB_GRANT` | Check the schema 3 audience, purpose, exact claims, size/format limits and clocks. For signed reads, also check the allowlisted origin and workspace path. |
+| `FILE_SOURCE_ORIGIN_NOT_CONFIGURED` or health shows `sourceOriginConfigured: false` | Set `FILE_PROCESSOR_SOURCE_ORIGIN` to the exact HTTPS source origin on the worker and redeploy. Health can be HTTP 200 while this setting is missing. |
+| `FILE_REQUEST_BODY_INVALID` | Inline mode requires octet-stream bytes and the exact length; signed-source mode requires an empty body and `Content-Length: 0`. |
+| `FILE_SOURCE_MISMATCH` or `SOURCE_HASH_MISMATCH` | Check the signed object's size/digest, URL expiry and storage response. Redirects and compressed object responses are refused. |
+| `INVALID_DOCUMENT_FORMAT` or `UNSUPPORTED_DOCUMENT_FORMAT` | Check the selected endpoint, purpose, extension/MIME pair, pages, image dimensions and archive/table limits. Validation success does not make a larger file eligible for OCR. |
+| `FILE_WORKER_RESULT_MISMATCH` or `OCR_WORKER_RESULT_MISMATCH` | Check that the deployed gateway and prepared snapshot use matching source/contracts. Do not bypass binding checks. |
 | `OCR_SANDBOX_UNAVAILABLE` | Inspect the accompanying `OCR_SANDBOX_BOOT_FAILED` stage and exit code. Cgroup setup retries changes in the live process list; persistent failures still block receipt transfer. After changing `sandbox/boot.sh`, prepare a new trusted snapshot, update the Production snapshot ID and redeploy. Keep the runtime guards enabled. |
 | `OCR_WORKER_TIMEOUT` | Measure snapshot restore and model startup against the request budgets. |
-| `OCR_WORKER_BUSY` | Wait for the active job, or recover an expired stale slot. |
+| `OCR_WORKER_BUSY` | OCR and file-processing jobs share the same slot. Wait before retrying (HTTP 429 responses include `Retry-After: 2`), or recover an expired stale slot. |
 | `OCR_SANDBOX_CLEANUP_INCOMPLETE` | Wait for VM expiration, then remove the stopped slot. |
 | Application receives HTTP 503 | Check the worker URL, project authentication, snapshot availability and server-to-server access. |
 
@@ -527,17 +654,17 @@ only deletes stopped or failed slots and never resumes or snapshots a job.
 ## 🛠️ Development
 
 ```text
-api/                       Vercel HTTP entry points
-docs/assets/               README illustrations and synthetic receipt
-examples/                  Signed-request demo for trusted Node.js clients
-lib/                       Grant validation and sandbox orchestration
-sandbox/ocr_worker/        Python parsers, isolation and result models
-sandbox/Dockerfile         Pinned Python runtime and model preparation
-sandbox/*.sh               Sandbox/container lifecycle scripts
-scripts/                   Preparation, recovery and static build commands
-site/                      Source for the generated public landing page
-tests/                     Python tests and gateway deployment regression checks
-vendor-manifest.json       Core source and dependency SHA-256 hashes
+api/                             Health, OCR and schema 3 file-processing HTTP entry points
+docs/assets/                     README illustrations and synthetic receipt
+examples/                        Signed-request demo for trusted Node.js clients
+lib/                             OCR/file grant validation, source reads and sandbox orchestration
+sandbox/ocr_worker/               OCR, file/table/image parsers, isolation and result models
+sandbox/Dockerfile                Pinned Python runtime and model preparation
+sandbox/*.sh                      Sandbox/container lifecycle scripts
+scripts/                         Preparation, recovery and static build commands
+site/                            Source for the generated public landing page
+tests/                           Python tests and gateway deployment regression checks
+vendor-manifest.json              Core source and dependency SHA-256 hashes
 ```
 
 Use the static build command when changing JavaScript or configuration:
@@ -592,21 +719,26 @@ isolation are welcome.
 For dependency or model changes, update the Linux/Python 3.12 lockfile, review
 upstream security/license implications and prepare a new model snapshot.
 
-<a name="ledgerical-integration"></a>
+<a name="application-integration"></a>
 
-## 🔗 Ledgerical integration
+## 🔗 Connect your application
 
-The worker can be deployed independently of the rest of Ledgerical:
+1. Deploy your worker and keep its HTTPS base URL in your server configuration.
+2. Configure the same `OCR_WORKER_GRANT_SECRET` on the worker and your
+   server-side request signer.
+3. Choose the endpoint and schema for your task. The included
+   [Node.js example](examples/process-document.mjs) demonstrates schema 2 OCR.
+4. Authorize the file in your application, calculate its size and SHA-256, and
+   create a short-lived grant with the required scope and purpose.
+5. Send the bytes, or use a schema 3 signed source URL when needed. Keep signing
+   credentials on your server.
+6. Check the HTTP status, result schema, scope, source digest and size before
+   using the returned text, records or image.
 
-| Service | Configuration |
-| --- | --- |
-| CMD, the grant issuer | Same `OCR_WORKER_GRANT_SECRET` as the worker; `DOCUMENT_OCR_ENABLED=true` |
-| Main, the relay | `OCR_WORKER_URL` set to the deployed worker's HTTPS origin |
-| Worker Function | Secret, prepared snapshot ID and other worker settings listed above |
-
-Use the origin only, without `/v1/process` or `/healthz`. Keep the grant signing
-secret out of Main. Main relays the signed request and consumes the validated
-OCR result. Ledgerical handles receipt review, record creation and file storage.
+Your application chooses how to review, display and save results. The worker
+returns processing output and does not require your application's database.
+Use synthetic inputs to evaluate accuracy and handling of invalid files before
+connecting your own document workflows.
 
 <a name="license-and-acknowledgements"></a>
 
