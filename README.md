@@ -465,6 +465,10 @@ Unknown or missing claims are rejected. Do not send an OCR grant to this API.
 | Inline, at most 2 MiB | `sourceUrl: ""`; raw bytes with `Content-Type: application/octet-stream` and exact `Content-Length: sizeBytes`. No compressed request body. |
 | Signed object read | Nonempty `sourceUrl`; empty request body with `Content-Length: 0`. The trusted gateway fetches the source, checks its declared/actual size and digest, and refuses redirects or compressed responses. |
 
+Send the length headers shown above when available. If a proxy omits a length
+header, the worker still enforces the exact signed size while streaming and
+checks the SHA-256 before processing. A conflicting declared length is rejected.
+
 Signed sources must match `FILE_PROCESSOR_SOURCE_ORIGIN` and the scope-path
 checks in [`lib/file-processing.mjs`](lib/file-processing.mjs). Your server
 selects the authorized source and signs the request. The signed URL is removed
