@@ -35,5 +35,6 @@ RUN HF_HUB_OFFLINE=0 python -c 'from ocr_worker.ocr import _get_ocr_reader; _get
     && chown -R 10001:10001 /worker /opt/paddle-cache \
     && chmod -R a+rX,go-w /worker /opt/paddle-cache
 
+ENV OCR_PREPARED_MODELS_ONLY=1
 USER 10001:10001
 ENTRYPOINT ["python", "-m", "ocr_worker.vercel_runner"]

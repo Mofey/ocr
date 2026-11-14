@@ -614,6 +614,17 @@ Run `npm run prepare:snapshot` after changing Python code, model assets,
 container dependencies or sandbox shell scripts. Set the newly printed
 snapshot ID on Vercel and redeploy the gateway.
 
+Preparation now checks a generated JPEG through the offline image-recognition
+path with the same CPU, memory, filesystem and parser restrictions as a real
+job. A snapshot is not published if model startup or inference fails. This is
+a readiness check, not an OCR accuracy benchmark, and uses no customer data.
+Runtime models use explicit local directories, one inference thread and bounded
+batches; requests do not download model files.
+
+Redeploying the gateway without preparing and selecting a new snapshot does not
+update the Python processor or its models. A text-based PDF can succeed without
+image recognition, so PDF success alone does not establish JPEG readiness.
+
 Code/model snapshots have automatic expiration disabled. Delete superseded
 snapshots in Vercel once deployments no longer use them.
 
@@ -649,7 +660,9 @@ only deletes stopped or failed slots and never resumes or snapshots a job.
 | `FILE_WORKER_RESULT_MISMATCH` or `OCR_WORKER_RESULT_MISMATCH` | Check that the deployed gateway and prepared snapshot use matching source/contracts. Do not bypass binding checks. |
 | `OCR_SANDBOX_UNAVAILABLE` | Inspect the accompanying `OCR_SANDBOX_BOOT_FAILED` stage and exit code. Cgroup setup retries changes in the live process list; persistent failures still block receipt transfer. After changing `sandbox/boot.sh`, prepare a new trusted snapshot, update the Production snapshot ID and redeploy. Keep the runtime guards enabled. |
 | `OCR_WORKER_TIMEOUT` | Measure snapshot restore and model startup against the request budgets. |
-| `OCR_WORKER_BUSY` | OCR and file-processing jobs share the same slot. Wait before retrying (HTTP 429 responses include `Retry-After: 2`), or recover an expired stale slot. |
+| `OCR_MODEL_UNAVAILABLE` | Inspect the accompanying `OCR_PARSER_FAILED` diagnostic. Prepare a new snapshot, confirm offline image-recognition readiness passes, select its snapshot ID and redeploy. Keep runtime isolation enabled. |
+| `OCR_PARSER_FAILED` or `OCR_PARSER_EXIT` | Logs contain only a fixed stage, allowlisted error type, bounded exit code and request/job correlation ID. Share these facts when reporting failures, without document contents. A child exit code can identify a native crash or resource termination; it does not by itself establish the cause. |
+| `OCR_WORKER_BUSY` | OCR and file-processing jobs share the same slot. Respect the response's `Retry-After` header before retrying, or recover an expired stale slot. |
 | `OCR_SANDBOX_CLEANUP_INCOMPLETE` | Wait for VM expiration, then remove the stopped slot. |
 | Application receives HTTP 503 | Check the worker URL, project authentication, snapshot availability and server-to-server access. |
 

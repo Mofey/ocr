@@ -2,6 +2,7 @@
 # The only document-bearing files are in bounded RAM mounts. No content in
 # command arguments, Docker logs or Vercel Sandbox command logs.
 set -eu
+case "$#:${1-}" in 0:) ;; 1:--model-probe) ;; *) exit 1 ;; esac
 exec >/dev/null 2>&1
 exec timeout --signal=TERM --kill-after=1s 28s \
   docker run --rm --pull=never --network=none --read-only --user=10001:10001 \
@@ -11,4 +12,4 @@ exec timeout --signal=TERM --kill-after=1s 28s \
     --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=64m,uid=10001,gid=10001,mode=0700 \
     --mount=type=bind,src=/run/ledgerical-ocr/input,dst=/input,readonly \
     --mount=type=bind,src=/run/ledgerical-ocr/output,dst=/output \
-    ledgerical-ocr:2026-10-17
+    ledgerical-ocr:2026-10-17 "$@"

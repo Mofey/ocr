@@ -29,6 +29,25 @@ _signing_secret = ""
 _runtime_ready = False
 
 
+def safe_failure_diagnostic(result: dict) -> dict:
+    # The native parser handles untrusted content. Only these fixed values may
+    # cross into operational logs; exception messages and traces never do.
+    stages = {"parser_startup", "pdf_validation", "image_validation", "model_initialization",
+              "pdf_render", "image_recognition", "structured_extraction", "child_exit", "child_ipc", "result_validation"}
+    error_types = {"RuntimeError", "ValueError", "TypeError", "AttributeError", "OSError", "PermissionError",
+                   "FileNotFoundError", "MemoryError", "ImportError", "ModuleNotFoundError", "NotImplementedError",
+                   "AssertionError", "SystemError", "ProcessExit", "TimeoutError"}
+    stage, error_type = result.get("stage"), result.get("errorType")
+    diagnostic = {
+        "stage": stage if isinstance(stage, str) and stage in stages else "parser_startup",
+        "errorType": error_type if isinstance(error_type, str) and error_type in error_types else "ParserError",
+    }
+    exit_code = result.get("exitCode")
+    if type(exit_code) is int and -128 <= exit_code <= 255:
+        diagnostic["exitCode"] = exit_code
+    return diagnostic
+
+
 class OCRMetadata(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -140,7 +159,7 @@ app = FastAPI(
 
 
 def _child_process(send_connection, body: bytes, claims: dict, scratch_dir: str) -> None:
-    from .processor import WorkerFormatError
+    from .processor import WorkerExecutionError, WorkerFormatError
 
     try:
         from .isolation import prepare_parser_sandbox
@@ -175,9 +194,11 @@ def _child_process(send_connection, body: bytes, claims: dict, scratch_dir: str)
         message = {"outcome": "ok", "result": result}
     except WorkerFormatError as error:
         message = {"outcome": "format_error", "statusCode": error.status_code, "code": error.code, "message": str(error)}
+    except WorkerExecutionError as error:
+        message = {"outcome": "worker_error", "stage": error.stage, "errorType": error.error_type}
     except BaseException as error:
         # Never forward exception text, stack traces, temp paths or document data.
-        message = {"outcome": "worker_error", "errorType": type(error).__name__}
+        message = {"outcome": "worker_error", "stage": "parser_startup", "errorType": type(error).__name__}
     try:
         encoded = json.dumps(message, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         if len(encoded) <= MAX_CHILD_IPC_BYTES:
@@ -230,6 +251,8 @@ def _run_isolated_child(body: bytes, grant: OCRInputGrant, scratch_dir: str, tim
         receiver.join(1)
         if receiver.is_alive():
             raise RuntimeError("OCR child result transfer did not finish")
+        if process.exitcode != 0:
+            return {"outcome": "worker_error", "stage": "child_exit", "errorType": "ProcessExit", "exitCode": process.exitcode}, max(0, int((time.monotonic() - started) * 1000))
         if receive_errors:
             raise RuntimeError("OCR child did not return a valid result") from receive_errors[0]
         if not received:
@@ -322,9 +345,10 @@ async def process_document(
                 detail={"error": result.get("code", "INVALID_DOCUMENT_FORMAT"), "message": result.get("message", "document format is invalid")},
             )
         if outcome != "ok" or not isinstance(result.get("result"), dict):
-            error_type = str(result.get("errorType", "unknown"))[:80] if isinstance(result, dict) else "unknown"
-            logger.error("ocr_job_child_failure job_id=%s error_type=%s", correlation_id, error_type)
-            raise HTTPException(status_code=503, detail={"error": "OCR_WORKER_UNAVAILABLE", "message": "isolated OCR processing is temporarily unavailable"})
+            diagnostic = safe_failure_diagnostic(result if isinstance(result, dict) else {})
+            logger.error("ocr_job_child_failure job_id=%s diagnostic=%s", correlation_id, diagnostic)
+            code = "OCR_MODEL_UNAVAILABLE" if diagnostic["stage"] == "model_initialization" else "OCR_WORKER_UNAVAILABLE"
+            raise HTTPException(status_code=503, detail={"error": code, "message": "Receipt processing is temporarily unavailable."})
 
         payload = dict(result["result"])
         payload["metrics"]["wallClockMs"] = elapsed_ms

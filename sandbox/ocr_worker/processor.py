@@ -34,6 +34,24 @@ class WorkerFormatError(ValueError):
         self.status_code = status_code
 
 
+class WorkerExecutionError(RuntimeError):
+    """Static diagnostic facts only; never include parser exception text."""
+
+    def __init__(self, stage: str, error_type: str):
+        super().__init__("OCR processing stage is unavailable")
+        self.stage = stage
+        self.error_type = error_type
+
+
+def _processing_stage(stage: str, operation, *args, **kwargs):
+    try:
+        return operation(*args, **kwargs)
+    except WorkerFormatError:
+        raise
+    except Exception as error:
+        raise WorkerExecutionError(stage, type(error).__name__) from None
+
+
 def _bounded_confidence(value: Any) -> float:
     try:
         number = float(value)
@@ -108,13 +126,19 @@ def _validate_image(content: bytes, filename: str, content_type: str) -> tuple[i
         ImageFile.LOAD_TRUNCATED_IMAGES = False
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
-            image = Image.open(io.BytesIO(content))
-            width, height = image.size
-            if width <= 0 or height <= 0 or width * height > MAX_IMAGE_PIXELS:
-                raise WorkerFormatError("INVALID_DOCUMENT_FORMAT", "decoded image dimensions exceed the OCR limit")
-            if image.format != _IMAGE_FORMATS[extension]:
-                raise WorkerFormatError("INVALID_DOCUMENT_FORMAT", "image signature does not match its extension")
-            image.verify()
+            with Image.open(io.BytesIO(content)) as image:
+                width, height = image.size
+                if width <= 0 or height <= 0 or width * height > MAX_IMAGE_PIXELS:
+                    raise WorkerFormatError("INVALID_DOCUMENT_FORMAT", "decoded image dimensions exceed the OCR limit")
+                if image.format != _IMAGE_FORMATS[extension]:
+                    raise WorkerFormatError("INVALID_DOCUMENT_FORMAT", "image signature does not match its extension")
+                image.verify()
+            # JPEG verify() checks headers but may not decode the pixel stream.
+            # Reject damaged/truncated images before model startup, as an input
+            # error rather than a misleading service failure. Dimensions were
+            # bounded above, and decoding still occurs only in this child.
+            with Image.open(io.BytesIO(content)) as image:
+                image.load()
         return width, height
     except WorkerFormatError:
         raise
@@ -195,7 +219,7 @@ def process_ocr_bytes(content: bytes, grant: dict, scratch_dir: str) -> dict:
         raise WorkerFormatError("UNSUPPORTED_DOCUMENT_FORMAT", "file extension and declared type do not match", 415)
 
     if extension == ".pdf":
-        text, page_count = _validate_pdf(content, filename, content_type)
+        text, page_count = _processing_stage("pdf_validation", _validate_pdf, content, filename, content_type)
         pixels = 0
         engine = "pypdf"
         confidence = 1.0 if len("".join(text.split())) >= 64 else 0.0
@@ -205,31 +229,31 @@ def process_ocr_bytes(content: bytes, grant: dict, scratch_dir: str) -> dict:
             from . import ocr
 
             model_init_started = time.monotonic()
-            ocr._get_ocr_reader()
+            _processing_stage("model_initialization", ocr._get_ocr_reader)
             model_init_ms = max(0, int((time.monotonic() - model_init_started) * 1000))
             ocr_started = time.monotonic()
-            rendered_png, pixels = _render_pdf_page_bounded(content)
-            text, confidence, layout = asyncio.run(ocr.ocr_image_layout(rendered_png))
+            rendered_png, pixels = _processing_stage("pdf_render", _render_pdf_page_bounded, content)
+            text, confidence, layout = _processing_stage("image_recognition", lambda: asyncio.run(ocr.ocr_image_layout(rendered_png)))
             engine = ocr.PP_OCR_LAYOUT_ENGINE
             ocr_render_ms = max(0, int((time.monotonic() - ocr_started) * 1000))
     else:
-        width, height = _validate_image(content, filename, content_type)
+        width, height = _processing_stage("image_validation", _validate_image, content, filename, content_type)
         page_count = 1
         pixels = width * height
         from . import ocr
 
         model_init_started = time.monotonic()
-        ocr._get_ocr_reader()
+        _processing_stage("model_initialization", ocr._get_ocr_reader)
         model_init_ms = max(0, int((time.monotonic() - model_init_started) * 1000))
         ocr_started = time.monotonic()
-        text, confidence, layout = asyncio.run(ocr.ocr_image_layout(content))
+        text, confidence, layout = _processing_stage("image_recognition", lambda: asyncio.run(ocr.ocr_image_layout(content)))
         engine = ocr.PP_OCR_LAYOUT_ENGINE
         ocr_render_ms = max(0, int((time.monotonic() - ocr_started) * 1000))
     text = str(text or "")[:MAX_TEXT_CHARS]
     lines = _bounded_layout(layout if isinstance(layout, list) else [])
     from .bank_statement_pdf import extract_bank_statement_text
 
-    bank_statement = extract_bank_statement_text(
+    bank_statement = _processing_stage("structured_extraction", extract_bank_statement_text,
         text,
         filename=filename,
         currency="XXX",

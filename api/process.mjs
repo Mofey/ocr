@@ -24,7 +24,9 @@ export default {
       const failure = error instanceof WorkerError ? error
         : new WorkerError(signal.aborted ? 504 : 503, signal.aborted ? 'OCR_WORKER_TIMEOUT' : 'OCR_WORKER_UNAVAILABLE');
       if (failure.status >= 500) console.error(failure.code);
-      return jsonResponse(failure.status, { detail: { error: failure.code } });
+      const response = jsonResponse(failure.status, { detail: { error: failure.code } });
+      if (failure.status === 429) response.headers.set('Retry-After', '5');
+      return response;
     } finally {
       body?.fill(0);
     }

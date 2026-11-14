@@ -183,6 +183,23 @@ def _build_ocr_reader():
     # actionable warnings/errors without hiding failures.
     logging.getLogger("paddlex").setLevel(logging.WARNING)
 
+    model_directories = {}
+    if os.environ.get("OCR_PREPARED_MODELS_ONLY") == "1":
+        # Explicit local directories avoid download/cache discovery in an
+        # offline, read-only job. Only trusted image preparation fetches models.
+        from pathlib import Path
+
+        root = Path(os.environ.get("PADDLE_PDX_CACHE_HOME", "/opt/paddle-cache")) / "official_models"
+        for field, name in (
+            ("text_detection_model_dir", PP_OCR_DETECTION_MODEL_NAME),
+            ("text_recognition_model_dir", PP_OCR_RECOGNITION_MODEL_NAME),
+            ("textline_orientation_model_dir", PP_OCR_TEXTLINE_ORIENTATION_MODEL_NAME),
+        ):
+            directory = root / name
+            if not directory.is_dir() or not (directory / "inference.pdiparams").is_file():
+                raise RuntimeError("Prepared OCR model files are unavailable")
+            model_directories[field] = str(directory)
+
     return PaddleOCR(
         text_detection_model_name=PP_OCR_DETECTION_MODEL_NAME,
         text_recognition_model_name=PP_OCR_RECOGNITION_MODEL_NAME,
@@ -191,12 +208,16 @@ def _build_ocr_reader():
         use_doc_unwarping=False,
         use_textline_orientation=True,
         device="cpu",
+        cpu_threads=1,
+        enable_mkldnn=False,
+        enable_hpi=False,
         text_det_thresh=0.3,
         text_det_box_thresh=0.5,
         text_det_unclip_ratio=1.6,
         text_rec_score_thresh=_MIN_TEXT_CONFIDENCE,
-        text_recognition_batch_size=6,
-        textline_orientation_batch_size=6,
+        text_recognition_batch_size=1,
+        textline_orientation_batch_size=1,
+        **model_directories,
     )
 
 

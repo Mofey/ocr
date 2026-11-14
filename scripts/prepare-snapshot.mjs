@@ -1,7 +1,7 @@
 import { Sandbox } from '@vercel/sandbox';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sdkAuth } from '../lib/sandbox.mjs';
+import { boundedFile, parserFailureDetails, sdkAuth } from '../lib/sandbox.mjs';
 import { bootstrapFailureDetails } from '../lib/bootstrap-diagnostics.mjs';
 import { loadLocalAuthentication } from './local-auth.mjs';
 import { readTrustedSnapshotFiles, safePreparationFailure, uploadTrustedSnapshotFiles } from '../lib/snapshot-preparation.mjs';
@@ -49,6 +49,18 @@ try {
   if (probe.exitCode !== 0) {
     console.error('Runtime check failed:', bootstrapFailureDetails(await probe.stderr(), probe.exitCode));
     throw new Error('runtime restrictions unavailable');
+  }
+  stage = 'check offline image recognition readiness';
+  console.log('Checking prepared models using generated JPEG content under the production job limits.');
+  const models = await sandbox.runCommand({
+    cmd: '/opt/ledgerical/process.sh', args: ['--model-probe'], sudo: true,
+    signal: AbortSignal.timeout(35000),
+  });
+  if (models.exitCode !== 0) throw new Error('offline image recognition unavailable');
+  const readiness = await boundedFile(sandbox, AbortSignal.timeout(5000), 2048);
+  if (readiness.status !== 200 || readiness.ready !== true) {
+    console.error('Offline image recognition unavailable:', parserFailureDetails(readiness.diagnostic));
+    throw new Error('offline image recognition unavailable');
   }
   stage = 'clean temporary bootstrap state';
   const clean = await sandbox.runCommand({
