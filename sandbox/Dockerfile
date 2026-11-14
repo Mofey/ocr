@@ -26,6 +26,9 @@ RUN update-ca-certificates \
 COPY paddle-dependencies.in paddle-dependencies-linux.lock ./
 RUN pip install --no-cache-dir --cert /etc/ssl/certs/ca-certificates.crt -r paddle-dependencies-linux.lock
 COPY ocr_worker/ ./ocr_worker/
+# Resolve host-library/CPU facts without shelling out inside the parser. The
+# compatibility step verifies the exact pinned dependency source before editing.
+RUN python -m ocr_worker.paddle_compat
 # Models are fetched ONCE, during trusted preparation, before any user input.
 RUN HF_HUB_OFFLINE=0 python -c 'from ocr_worker.ocr import _get_ocr_reader; _get_ocr_reader()' \
     && rm -rf /opt/paddle-cache/locks /opt/paddle-cache/temp /opt/paddle-cache/func_ret \

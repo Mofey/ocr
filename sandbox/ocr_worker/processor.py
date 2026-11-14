@@ -37,10 +37,27 @@ class WorkerFormatError(ValueError):
 class WorkerExecutionError(RuntimeError):
     """Static diagnostic facts only; never include parser exception text."""
 
-    def __init__(self, stage: str, error_type: str):
+    def __init__(self, stage: str, error: Exception):
         super().__init__("OCR processing stage is unavailable")
         self.stage = stage
-        self.error_type = error_type
+        self.error_type = type(error).__name__
+        self.error_number = getattr(error, "errno", None)
+        self.operation = "unreported"
+        modules = set()
+        frame = error.__traceback__
+        while frame is not None:
+            modules.add(frame.tb_frame.f_globals.get("__name__", ""))
+            frame = frame.tb_next
+        # Fixed classifications only: no raw filenames, exception messages,
+        # stack traces, model inputs or document contents leave the child.
+        for prefix, operation in (
+            ("cpuinfo", "cpu_detection"), ("ctypes.util", "library_discovery"),
+            ("multiprocessing", "process_creation"), ("subprocess", "process_execution"),
+            ("filelock", "cache_lock"), ("pathlib", "filesystem"),
+        ):
+            if any(name == prefix or name.startswith(prefix + ".") for name in modules):
+                self.operation = operation
+                break
 
 
 def _processing_stage(stage: str, operation, *args, **kwargs):
@@ -49,7 +66,7 @@ def _processing_stage(stage: str, operation, *args, **kwargs):
     except WorkerFormatError:
         raise
     except Exception as error:
-        raise WorkerExecutionError(stage, type(error).__name__) from None
+        raise WorkerExecutionError(stage, error) from None
 
 
 def _bounded_confidence(value: Any) -> float:

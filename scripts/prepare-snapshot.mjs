@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { boundedFile, parserFailureDetails, sdkAuth } from '../lib/sandbox.mjs';
 import { bootstrapFailureDetails } from '../lib/bootstrap-diagnostics.mjs';
 import { loadLocalAuthentication } from './local-auth.mjs';
-import { readTrustedSnapshotFiles, safePreparationFailure, uploadTrustedSnapshotFiles } from '../lib/snapshot-preparation.mjs';
+import { preparationFailureHint, readTrustedSnapshotFiles, safePreparationFailure, uploadTrustedSnapshotFiles } from '../lib/snapshot-preparation.mjs';
 import './check.mjs';
 
 if (!loadLocalAuthentication()) process.exit(1);
@@ -22,6 +22,7 @@ try {
     ...sdkAuth(), image: 'vercel/sandbox/universal',
     persistent: false, networkPolicy: 'allow-all', env: {}, ports: [],
     resources: { vcpus: 4 }, region, timeout: 45 * 60 * 1000,
+    signal: AbortSignal.timeout(60000),
   });
   await uploadTrustedSnapshotFiles(sandbox, files, value => { stage = value; });
   stage = 'check cgroup prerequisites';
@@ -85,6 +86,8 @@ try {
   console.log('Set these on this Vercel project, then redeploy. No user file was processed or snapshotted.');
 } catch (error) {
   console.error(`Preparation failed during: ${stage}. ${safePreparationFailure(error)}. No deployment settings were changed.`);
+  const hint = preparationFailureHint(error);
+  if (hint) console.error(hint);
   process.exitCode = 1;
 } finally {
   if (sandbox) {

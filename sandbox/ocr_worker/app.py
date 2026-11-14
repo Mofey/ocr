@@ -45,6 +45,12 @@ def safe_failure_diagnostic(result: dict) -> dict:
     exit_code = result.get("exitCode")
     if type(exit_code) is int and -128 <= exit_code <= 255:
         diagnostic["exitCode"] = exit_code
+    error_number = result.get("errno")
+    if type(error_number) is int and error_number in {1, 2, 5, 12, 13, 24, 28, 30}:
+        diagnostic["errno"] = error_number
+    operation = result.get("operation")
+    if isinstance(operation, str) and operation in {"cpu_detection", "library_discovery", "process_creation", "process_execution", "cache_lock", "filesystem"}:
+        diagnostic["operation"] = operation
     return diagnostic
 
 
@@ -195,7 +201,8 @@ def _child_process(send_connection, body: bytes, claims: dict, scratch_dir: str)
     except WorkerFormatError as error:
         message = {"outcome": "format_error", "statusCode": error.status_code, "code": error.code, "message": str(error)}
     except WorkerExecutionError as error:
-        message = {"outcome": "worker_error", "stage": error.stage, "errorType": error.error_type}
+        message = {"outcome": "worker_error", "stage": error.stage, "errorType": error.error_type,
+                   "errno": error.error_number, "operation": error.operation}
     except BaseException as error:
         # Never forward exception text, stack traces, temp paths or document data.
         message = {"outcome": "worker_error", "stage": "parser_startup", "errorType": type(error).__name__}

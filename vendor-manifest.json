@@ -4,16 +4,17 @@
   "migratedOn": "2026-10-17",
   "sha256": {
     "sandbox/ocr_worker/__init__.py": "07ae4408c8eb32447380e8f4e66d6b8bb54fbded2812023b7ec0f038eb16e066",
-    "sandbox/ocr_worker/app.py": "077126d1540a887636c1d2c23aa3d09d0efbbf03b935e46699099bd836191ce2",
+    "sandbox/ocr_worker/app.py": "a7211126087b0103c0f13ef45f159d769a806891d7d42a13bdcf27bc6c9c6963",
     "sandbox/ocr_worker/grant.py": "9f48fa0a75dd5d614ee6ac46b99286830bb07eac5d164b1f4cff918523517aa1",
     "sandbox/ocr_worker/isolation.py": "3220e7d879fb14db3467cc19ce18f3305f8d97a003d05ad2b6c35210611187f0",
-    "sandbox/ocr_worker/processor.py": "9daee229cdddbe8c03326ec91e52657e9df620bc8de2102bbabdb6b336a7eb4f",
+    "sandbox/ocr_worker/processor.py": "93d3ddeafd252a0c6309f15416f37f1ca25b69bc310a8850f280edaad6ac7754",
     "sandbox/ocr_worker/ocr.py": "f1642606374ab52cd65ffddfd3d48e4201ca574443bf1350d50385e3db3189e4",
     "sandbox/ocr_worker/bank_statement_pdf.py": "d49c1a7ac6194daef6ca49b72a671f81fcc80d14f58d0f3d8cdd0812c1adba00",
     "sandbox/paddle-dependencies.in": "e9c38eea37df840993c70018822f12d20fa2ff546215603c67283b43b63ecf33",
     "sandbox/paddle-dependencies-linux.lock": "7f57c4663e01fa64a39e83fa81b40748ca3f2961fed4358cac896f61fdc68109",
     "sandbox/ocr_worker/vercel_runner.py": "9bc4387e6c87f586c2e642b2391855c0f9033d1ceab7ba1d6e9b15c60008ab5c",
-    "sandbox/ocr_worker/file_processor.py": "171c4a327848bb966bd1af5b0b4ca795c0ad819a57ed3a96afd1cd2fc78a4353"
+    "sandbox/ocr_worker/file_processor.py": "171c4a327848bb966bd1af5b0b4ca795c0ad819a57ed3a96afd1cd2fc78a4353",
+    "sandbox/ocr_worker/paddle_compat.py": "d6a5fb3d55ac66eba4a78c9e46a03a91becc1c43800fe567d40e05013945a280"
   },
   "lineEndings": "LF"
 }

@@ -258,6 +258,12 @@ npx vercel link
 npx vercel env pull .env.local
 ```
 
+The local preparation commands check the selected OIDC token before creating
+a sandbox. If it has expired or has less than five minutes remaining, pull a
+fresh token and rerun the command. Token contents and decoded scope claims are
+never printed. On Windows PowerShell, use `npx.cmd` and `npm.cmd` when execution
+policy prevents the corresponding `.ps1` wrappers from running.
+
 Select the worker project when linking. The environment pull creates
 `.env.local` with a local `VERCEL_OIDC_TOKEN`. The setup scripts load this file
 and check for authentication before creating cloud resources.
@@ -649,6 +655,9 @@ only deletes stopped or failed slots and never resumes or snapshots a job.
 | `OCR_DEPLOYMENT_ROOT_INVALID`, missing `public` output, or Paddle installing during the gateway build | Clear `sandbox` from Vercel's Root Directory. Leave it empty for the standalone repository, save and redeploy. The gateway uses Node.js; Python dependencies are installed when preparing the sandbox snapshot. |
 | `/healthz` returns `OCR_WORKER_NOT_CONFIGURED` | Its `detail.missingOrInvalid` array lists variable names to fix. Configure the shared signing secret and a snapshot ID printed by successful `npm run prepare:snapshot` in the deployment's environment, then redeploy. A local `.env` file does not configure Vercel. |
 | Missing `.env.local` or authentication | Run `npx vercel login`, `npx vercel link` and `npx vercel env pull .env.local` from the repository root. |
+| Local Vercel authentication expired | Run `npx vercel env pull .env.local` from the linked OCR project, then rerun preparation. A stale token is rejected locally before resource creation. If `VERCEL_OIDC_TOKEN_FILE` is set, refresh the token source selected by that variable. |
+| Preparation fails during `create` with `TypeError` | Update to the current script so the nested cause is shown as an allowlisted code. `ENOTFOUND`/`EAI_AGAIN` identify DNS failures, `UND_ERR_CONNECT_TIMEOUT` identifies a connection timeout, and certificate codes identify TLS validation failures. The VM's 45-minute lifetime is separate from the bounded creation-request deadline. |
+| Certificate validation fails when connecting from Node.js | Check the clock and approved CA configuration. On Node.js 24, `node --use-system-ca scripts/prepare-snapshot.mjs` uses the system trust store. Use `NODE_EXTRA_CA_CERTS` for an approved CA file if required by your network. Keep certificate validation enabled. |
 | Preparation fails while creating upload directories, uploading source or verifying it | Use the current preparation script and rerun `npm run prepare:snapshot`. It creates parent directories recursively and verifies uploaded hashes and executable scripts. The error includes the precise stage and safe HTTP/filesystem codes; share those diagnostics when reporting a failure. |
 | `OCR_WORKER_NOT_CONFIGURED` | Check the worker secret, snapshot ID, region and slot settings, then redeploy. |
 | `INVALID_OCR_JOB_GRANT` | Check the issuer/worker secrets, signed fields, exact file bytes and clocks. |
@@ -661,7 +670,9 @@ only deletes stopped or failed slots and never resumes or snapshots a job.
 | `OCR_SANDBOX_UNAVAILABLE` | Inspect the accompanying `OCR_SANDBOX_BOOT_FAILED` stage and exit code. Cgroup setup retries changes in the live process list; persistent failures still block receipt transfer. After changing `sandbox/boot.sh`, prepare a new trusted snapshot, update the Production snapshot ID and redeploy. Keep the runtime guards enabled. |
 | `OCR_WORKER_TIMEOUT` | Measure snapshot restore and model startup against the request budgets. |
 | `OCR_MODEL_UNAVAILABLE` | Inspect the accompanying `OCR_PARSER_FAILED` diagnostic. Prepare a new snapshot, confirm offline image-recognition readiness passes, select its snapshot ID and redeploy. Keep runtime isolation enabled. |
-| `OCR_PARSER_FAILED` or `OCR_PARSER_EXIT` | Logs contain only a fixed stage, allowlisted error type, bounded exit code and request/job correlation ID. Share these facts when reporting failures, without document contents. A child exit code can identify a native crash or resource termination; it does not by itself establish the cause. |
+| `OCR_PARSER_FAILED` or `OCR_PARSER_EXIT` | Logs contain only a fixed stage, allowlisted error type, bounded exit code, safe OS error number/operation classification and request/job correlation ID. Share these facts when reporting failures, without document contents. A child exit code can identify a native crash or resource termination; it does not by itself establish the cause. |
+| Offline image readiness reports `model_initialization`, `PermissionError`, `errno: 1`, `process_execution` | Rebuild using the current Dockerfile and `ocr_worker/paddle_compat.py`. The build verifies the exact pinned Paddle source and replaces its shell-based libc/AVX startup discovery with direct system reads. Process execution remains blocked in the parser. Publication still requires successful offline JPEG processing. |
+| `OCR_SNAPSHOT_DIAGNOSTICS_MISSING` | The processing result did not report failure-stage details. An older snapshot can produce this even after the gateway is redeployed. Rebuild from the current source, wait for the offline JPEG readiness check to pass, copy the printed snapshot ID to the correct Vercel environment and redeploy. A missing diagnostic is logged as `not_reported`; it is not evidence of a parser-startup failure. |
 | `OCR_WORKER_BUSY` | OCR and file-processing jobs share the same slot. Respect the response's `Retry-After` header before retrying, or recover an expired stale slot. |
 | `OCR_SANDBOX_CLEANUP_INCOMPLETE` | Wait for VM expiration, then remove the stopped slot. |
 | Application receives HTTP 503 | Check the worker URL, project authentication, snapshot availability and server-to-server access. |
